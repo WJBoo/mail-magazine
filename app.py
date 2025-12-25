@@ -27,7 +27,7 @@ def send_gmail_html(to_email: str, subject: str, html: str, from_user: str = "me
     if not client_b64 or not token_b64:
         raise RuntimeError("Missing GMAIL_CLIENT_B64 or GMAIL_TOKEN_B64 env var")
 
-    # strip whitespace/newlines just in case Render wrapped it
+    # Remove accidental whitespace/newlines
     client_b64 = re.sub(r"\s+", "", client_b64)
     token_b64  = re.sub(r"\s+", "", token_b64)
 
@@ -38,27 +38,27 @@ def send_gmail_html(to_email: str, subject: str, html: str, from_user: str = "me
     if not installed:
         raise RuntimeError("credentials.json missing 'installed' or 'web' block")
 
-    # Build creds from token.json
-    creds = Credentials.from_authorized_user_info(token_info, scopes=SCOPES)
-
-    # Ensure refresh configuration exists (needed on servers)
-    creds.client_id = creds.client_id or installed.get("client_id")
-    creds.client_secret = creds.client_secret or installed.get("client_secret")
-    creds.token_uri = creds.token_uri or installed.get("token_uri", "https://oauth2.googleapis.com/token")
-
-    # IMPORTANT: server must be able to refresh
-    # If refresh_token is missing, you will never get an access token on Render.
-    if not creds.refresh_token:
+    # token.json must contain refresh_token for server use
+    if not token_info.get("refresh_token"):
         raise RuntimeError(
-            "token.json has no refresh_token. Re-create token.json with InstalledAppFlow and gmail.send scope."
+            "token.json has no refresh_token. Recreate token.json with prompt='consent' and gmail.send scope."
         )
 
-    # Force refresh to guarantee Authorization header is sent
+    # Build creds with refresh config in the constructor (no property-setting)
+    creds = Credentials(
+        token=token_info.get("token"),
+        refresh_token=token_info.get("refresh_token"),
+        token_uri=token_info.get("token_uri") or installed.get("token_uri") or "https://oauth2.googleapis.com/token",
+        client_id=token_info.get("client_id") or installed.get("client_id"),
+        client_secret=token_info.get("client_secret") or installed.get("client_secret"),
+        scopes=SCOPES,
+    )
+
+    # Force refresh so we definitely have an access token for Authorization header
     creds.refresh(Request())
 
-    # Debug once in Render logs (remove later)
-    print("GMAIL AUTH DEBUG:",
-          {"has_token": bool(creds.token), "expired": creds.expired, "scopes": creds.scopes})
+    # Optional: one-time debug in logs (remove later)
+    print("GMAIL AUTH DEBUG:", {"has_token": bool(creds.token), "expired": creds.expired})
 
     service = build("gmail", "v1", credentials=creds, cache_discovery=False)
 

@@ -31,108 +31,81 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 # ...
 
 HEADER_RE = re.compile(r"^◆(?P<title>.+)$")
+STAGE_RE  = re.compile(r"^\[(?P<stage>本戦|予選)\]$")
 
-SECTION_RE = re.compile(
-    r"^(?P<category>男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)"
-    r"(?P<stage>予選|本戦)"
-    r"(?P<round>.*)$"
-)
-
-SCORELINE_RE = re.compile(
-    r"^(?P<score>.+?)\s+(?P<opp>.+?)(?:\((?P<aff>.+)\))?$"
-)
-
-def normalize_round(raw: str) -> str:
-    return raw.strip()
-
-def parse_results(text: str) -> List[Dict[str, Any]]:
-    """
-    Output:
-    [
-      {
-        "category":"男子シングルス",
-        "entries":[
-          {
-            "name":"眞田将吾",
-            "round":"1R",
-            "score":"4-6/6(4)-7",
-            "opponent":"杉本一樹",
-            "opponent_affiliation":"明治大学"
-          },
-          ...
-        ]
-      },
-      ...
-    ]
-    """
-    lines = [ln.strip() for ln in text.replace("\r\n", "\n").split("\n")]
-    while lines and lines[0] == "":
-        lines.pop(0)
-    while lines and lines[-1] == "":
-        lines.pop()
+def parse_bracket(text: str) -> List[Dict[str, Any]]:
+    lines = [ln.rstrip() for ln in text.replace("\r\n", "\n").split("\n")]
 
     sections: List[Dict[str, Any]] = []
-    current: Optional[Dict[str, Any]] = None
+    current_section = None
+    current_player = None
+    current_block = None
+
+    def flush_block():
+        nonlocal current_block
+        if current_player and current_block:
+            current_player["blocks"].append(current_block)
+            current_block = None
+
+    def flush_player():
+        nonlocal current_player
+        flush_block()
+        if current_section and current_player:
+            # drop players with no content
+            if current_player["blocks"]:
+                current_section["players"].append(current_player)
+        current_player = None
+
     i = 0
-
-    def start_section(title_line: str) -> Dict[str, Any]:
-        m = SECTION_RE.match(title_line)
-        if not m:
-            # Fallback: treat entire title as category
-            return {"category": title_line, "round": "", "entries": []}
-        return {
-            "category": m.group("category"),
-            "stage": m.group("stage"),
-            "round": normalize_round(m.group("round")),  # e.g. "1R", "F", "SF"
-            "entries": [],
-        }
-
     while i < len(lines):
-        ln = lines[i]
+        ln = lines[i].strip()
+
         if ln == "":
             i += 1
             continue
 
         hm = HEADER_RE.match(ln)
         if hm:
-            title = hm.group("title").strip()
-            current = start_section(title)
-            sections.append(current)
+            flush_player()
+            current_section = {"category": hm.group("title").strip(), "players": []}
+            sections.append(current_section)
             i += 1
             continue
 
-        if current is None:
+        if current_section is None:
             i += 1
             continue
 
-        # Name line
-        name = ln
-
-        # Next non-empty line should be score line
-        j = i + 1
-        while j < len(lines) and lines[j].strip() == "":
-            j += 1
-        if j >= len(lines):
-            break
-
-        sm = SCORELINE_RE.match(lines[j].strip())
-        if not sm:
+        sm = STAGE_RE.match(ln)
+        if sm:
+            if current_player is None:
+                i += 1
+                continue
+            flush_block()
+            current_block = {"stage": sm.group("stage"), "lines": []}
             i += 1
             continue
 
-        entry = {
-            "name": name,
-            "round": current.get("round", ""),  # inherited from section header
-            "score": sm.group("score").strip(),
-            "opponent": sm.group("opp").strip(),
-            "opponent_affiliation": (sm.group("aff") or "").strip(),
-        }
-        current["entries"].append(entry)
-        i = j + 1
+        # new player name
+        if current_player is None:
+            current_player = {"name": ln, "blocks": []}
+            current_block = None
+            i += 1
+            continue
 
-    # drop sections with no entries
-    sections = [s for s in sections if s.get("entries")]
+        # result line
+        if current_block is None:
+            # if user forgot to write [本戦]/[予選], store lines anyway
+            current_block = {"stage": "", "lines": []}
+        current_block["lines"].append(ln)
+        i += 1
+
+    flush_player()
+
+    # drop empty sections
+    sections = [s for s in sections if s["players"]]
     return sections
+
 
 
 def merge_sections_by_category(sections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

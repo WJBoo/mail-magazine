@@ -113,16 +113,24 @@
             {% for p in s.players %}
               <div class="player-block">
                 <div class="player-name">{{ p.name }}</div>
-                {% if p.stage %}
-                  <div class="stage">[{{ p.stage }}]</div>
-                {% endif %}
-
-                {# p.lines is a list of strings; keep as-is (e.g., "1R bye") #}
-                {% for ln in p.lines %}
-                  <div class="line">{{ ln }}</div>
+            
+                {% for b in p.blocks %}
+                  {% if b.stage %}
+                    <div class="stage">[{{ b.stage }}]</div>
+                  {% endif %}
+            
+                  {% for ln in b.lines %}
+                    <div class="line">{{ ln }}</div>
+                  {% endfor %}
+            
+                  {# optional small gap between [予選] and [本戦] blocks #}
+                  {% if not loop.last %}
+                    <div style="height:10px;"></div>
+                  {% endif %}
                 {% endfor %}
               </div>
             {% endfor %}
+
 
             <div class="block-gap"></div>
           {% endfor %}
@@ -136,15 +144,24 @@
             {% for p in s.players %}
               <div class="player-block">
                 <div class="player-name">{{ p.name }}</div>
-                {% if p.stage %}
-                  <div class="stage">[{{ p.stage }}]</div>
-                {% endif %}
-
-                {% for ln in p.lines %}
-                  <div class="line">{{ ln }}</div>
+            
+                {% for b in p.blocks %}
+                  {% if b.stage %}
+                    <div class="stage">[{{ b.stage }}]</div>
+                  {% endif %}
+            
+                  {% for ln in b.lines %}
+                    <div class="line">{{ ln }}</div>
+                  {% endfor %}
+            
+                  {# optional small gap between [予選] and [本戦] blocks #}
+                  {% if not loop.last %}
+                    <div style="height:10px;"></div>
+                  {% endif %}
                 {% endfor %}
               </div>
             {% endfor %}
+
 
             <div class="block-gap"></div>
           {% endfor %}

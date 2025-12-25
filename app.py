@@ -10,6 +10,33 @@ from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+# Email Code
+import base64
+import pickle
+from email.mime.text import MIMEText
+from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+
+def send_gmail_html(to_email: str, subject: str, html: str):
+    token_b64 = os.environ["GMAIL_TOKEN_BASE64"]
+    sender = os.environ["GMAIL_SENDER"]
+
+    creds = pickle.loads(base64.b64decode(token_b64))
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+
+    service = build("gmail", "v1", credentials=creds)
+
+    msg = MIMEText(html, "html", "utf-8")
+    msg["To"] = to_email
+    msg["From"] = sender
+    msg["Subject"] = subject
+
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    service.users().messages().send(
+        userId="me",
+        body={"raw": raw}
+    ).execute()
 
 # ============================================================
 # 1) PARSING (new “bracket + multi-line per player” format)
@@ -328,6 +355,7 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
         message=f"Update {PUBLISH_LATEST} ({dt.datetime.now().isoformat(timespec='seconds')})",
         token=GH_TOKEN, branch=GH_BRANCH
     )
+    
 
     archive_path = f"archive/{today}.html"
     github_put_file(
@@ -336,6 +364,12 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
         message=f"Archive cumulative results ({today})",
         token=GH_TOKEN, branch=GH_BRANCH
     )
+    send_gmail_html(
+    to_email="recipient@example.com",
+    subject=f"{page_title}（{today}）",
+    html=html.decode("utf-8")
+    )
+
 
     return HTMLResponse(
         f"""

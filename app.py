@@ -29,124 +29,63 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 #
 # ◆女子シングルス
 # ...
+HEADER_RE = re.compile(
+    r"^(?P<category>男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)"
+    r"(?P<stage>本戦|予選)"
+    r"(?P<round>.+)$"
+)
 
-HEADER_RE = re.compile(r"^◆(?P<title>.+)$")
-# STAGE_RE  = re.compile(r"^\[(?P<stage>本戦|予選)\]$")
-# Put these near your other regexes
-CATEGORY_RE = re.compile(r"^(男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)")
-# Accept [本戦] / [予選] (you already have STAGE_RE)
-# STAGE_RE  = re.compile(r"^\[(?P<stage>本戦|予選)\]$")
+SCORE_RE = re.compile(
+    r"^(?P<score>[0-9\-/()]+)\s+(?P<opp>.+)$"
+)
 
-def parse_bracket(text: str) -> List[Dict[str, Any]]:
-    lines = [ln.rstrip() for ln in text.replace("\r\n", "\n").split("\n")]
+def parse_daily_results(text: str) -> List[Dict[str, Any]]:
+    lines = [ln.strip() for ln in text.replace("\r\n", "\n").split("\n") if ln.strip()]
 
-    sections: List[Dict[str, Any]] = []
-    current_section: Optional[Dict[str, Any]] = None
-
-    # For merging same player within a section
-    player_index: Dict[str, Dict[str, Any]] = {}
-
-    current_player: Optional[Dict[str, Any]] = None
-    current_block: Optional[Dict[str, Any]] = None
-
-    def normalize_category(header_title: str) -> str:
-        """
-        header_title is text after ◆, e.g. "男子シングルス本戦1R"
-        returns just "男子シングルス" etc if found; else returns raw.
-        """
-        m = CATEGORY_RE.match(header_title.strip())
-        return m.group(1) if m else header_title.strip()
-
-    def flush_block():
-        nonlocal current_block
-        if current_player is not None and current_block is not None:
-            # avoid appending empty blocks
-            if current_block["lines"] or current_block["stage"]:
-                current_player["blocks"].append(current_block)
-        current_block = None
-
-    def flush_player():
-        nonlocal current_player
-        flush_block()
-        current_player = None
-
-    def start_section(raw_title: str):
-        nonlocal current_section, player_index, current_player, current_block
-
-        flush_player()
-
-        cat = normalize_category(raw_title)
-
-        # If the next header is the same category, continue the same section
-        # (this handles "◆男子シングルス本戦1R" then later "◆男子シングルス本戦2R")
-        if current_section is not None and current_section.get("category") == cat:
-            return
-
-        current_section = {"category": cat, "players": []}
-        sections.append(current_section)
-        player_index = {}
-        current_player = None
-        current_block = None
-
+    sections = []
     i = 0
+
     while i < len(lines):
-        ln = lines[i].strip()
-
-        if ln == "":
+        # ---- HEADER ----
+        hm = HEADER_RE.match(lines[i])
+        if not hm:
             i += 1
             continue
 
-        hm = HEADER_RE.match(ln)
-        if hm:
-            start_section(hm.group("title"))
-            i += 1
-            continue
+        category = hm.group("category")
+        stage = hm.group("stage")
+        round_ = hm.group("round")
 
-        if current_section is None:
-            i += 1
-            continue
+        section = {
+            "category": category,
+            "players": []
+        }
 
-        sm = STAGE_RE.match(ln)
-        if sm:
-            if current_player is None:
-                i += 1
-                continue
-            flush_block()
-            current_block = {"stage": sm.group("stage"), "lines": []}
-            i += 1
-            continue
-
-        # Decide if this line starts a NEW player
-        # Rule: if we have no current_player OR we just finished a player and next looks like a name.
-        # In this format, a name line is followed by either [本戦]/[予選] OR a result line.
-        if current_player is None:
-            name = ln
-
-            # Reuse existing player object in this section if same name appears again
-            if name in player_index:
-                current_player = player_index[name]
-            else:
-                current_player = {"name": name, "blocks": []}
-                player_index[name] = current_player
-                current_section["players"].append(current_player)
-
-            current_block = None
-            i += 1
-            continue
-
-        # Otherwise: treat as result line
-        if current_block is None:
-            # If user didn't write [本戦]/[予選], store lines under stage=""
-            current_block = {"stage": "", "lines": []}
-
-        current_block["lines"].append(ln)
         i += 1
 
-    flush_player()
+        # ---- PLAYER + SCORE PAIRS ----
+        while i + 1 < len(lines) and not HEADER_RE.match(lines[i]):
+            name = lines[i]
+            score_line = lines[i + 1]
 
-    # Remove empty sections
-    sections = [s for s in sections if s.get("players")]
+            sm = SCORE_RE.match(score_line)
+            if sm:
+                section["players"].append({
+                    "name": name,
+                    "blocks": [{
+                        "stage": stage,
+                        "lines": [
+                            f"{round_} {sm.group('score')} {sm.group('opp')}"
+                        ]
+                    }]
+                })
+
+            i += 2
+
+        sections.append(section)
+
     return sections
+
 
 
 
@@ -254,65 +193,40 @@ def save_state(state: Dict[str, Any], token: str, owner: str, repo: str, branch:
         token=token, branch=branch
     )
 
-def merge_events_into_state(state: Dict[str, Any], events: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    events: sections list in template shape:
-      [{"category":..., "players":[{"name":..., "blocks":[{"stage":..., "lines":[...]}]}]}]
-    Merges by:
-      category + player + stage, de-dupe exact lines, preserve order.
-    """
-    # Index existing state
-    sections = state.get("sections", [])
-    sec_map: Dict[str, Dict[str, Any]] = {s["category"]: s for s in sections if "category" in s}
+def merge_into_state(state: Dict[str, Any], daily_sections: List[Dict[str, Any]]) -> Dict[str, Any]:
+    sec_map = {s["category"]: s for s in state.get("sections", [])}
 
-    def get_or_create_section(category: str) -> Dict[str, Any]:
-        if category not in sec_map:
-            s = {"category": category, "players": []}
-            sec_map[category] = s
-            sections.append(s)
-        return sec_map[category]
+    for ds in daily_sections:
+        cat = ds["category"]
 
-    for ev_sec in events:
-        category = ev_sec.get("category", "").strip()
-        if not category:
-            continue
+        if cat not in sec_map:
+            sec_map[cat] = {"category": cat, "players": []}
+            state["sections"].append(sec_map[cat])
 
-        s = get_or_create_section(category)
+        sec = sec_map[cat]
+        player_map = {p["name"]: p for p in sec["players"]}
 
-        # player index within this section
-        p_map: Dict[str, Dict[str, Any]] = {p["name"]: p for p in s.get("players", []) if "name" in p}
+        for dp in ds["players"]:
+            name = dp["name"]
 
-        for ev_p in ev_sec.get("players", []):
-            name = (ev_p.get("name") or "").strip()
-            if not name:
-                continue
+            if name not in player_map:
+                player_map[name] = {"name": name, "blocks": []}
+                sec["players"].append(player_map[name])
 
-            if name not in p_map:
-                p = {"name": name, "blocks": []}
-                s["players"].append(p)
-                p_map[name] = p
-            p = p_map[name]
+            player = player_map[name]
 
-            # block index by stage
-            b_map: Dict[str, Dict[str, Any]] = {b.get("stage",""): b for b in p.get("blocks", [])}
+            for db in dp["blocks"]:
+                stage = db["stage"]
 
-            for ev_b in ev_p.get("blocks", []):
-                stage = (ev_b.get("stage") or "").strip()  # "本戦"/"予選"/""
-                lines = [ln.strip() for ln in ev_b.get("lines", []) if ln.strip()]
+                block = next((b for b in player["blocks"] if b["stage"] == stage), None)
+                if not block:
+                    block = {"stage": stage, "lines": []}
+                    player["blocks"].append(block)
 
-                if stage not in b_map:
-                    b = {"stage": stage, "lines": []}
-                    p["blocks"].append(b)
-                    b_map[stage] = b
-                b = b_map[stage]
+                for ln in db["lines"]:
+                    if ln not in block["lines"]:
+                        block["lines"].append(ln)
 
-                existing = set(b.get("lines", []))
-                for ln in lines:
-                    if ln not in existing:
-                        b["lines"].append(ln)
-                        existing.add(ln)
-
-    state["sections"] = sections
     return state
 
 
@@ -386,7 +300,7 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
 
     # 1) Parse today's paste into "events"
     # IMPORTANT: use the parser matching your input format:
-    events = parse_pair_headers(raw)   # <-- from the earlier message
+    events = events = parse_daily_results(raw)   # <-- from the earlier message
     # OR, if you paste the bracket format with [本戦]/[予選]:
     # events = parse_bracket(raw)
 

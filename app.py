@@ -31,30 +31,62 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 # ...
 
 HEADER_RE = re.compile(r"^◆(?P<title>.+)$")
-STAGE_RE  = re.compile(r"^\[(?P<stage>本戦|予選)\]$")
+# STAGE_RE  = re.compile(r"^\[(?P<stage>本戦|予選)\]$")
+# Put these near your other regexes
+CATEGORY_RE = re.compile(r"^(男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)")
+# Accept [本戦] / [予選] (you already have STAGE_RE)
+# STAGE_RE  = re.compile(r"^\[(?P<stage>本戦|予選)\]$")
 
 def parse_bracket(text: str) -> List[Dict[str, Any]]:
     lines = [ln.rstrip() for ln in text.replace("\r\n", "\n").split("\n")]
 
     sections: List[Dict[str, Any]] = []
-    current_section = None
-    current_player = None
-    current_block = None
+    current_section: Optional[Dict[str, Any]] = None
+
+    # For merging same player within a section
+    player_index: Dict[str, Dict[str, Any]] = {}
+
+    current_player: Optional[Dict[str, Any]] = None
+    current_block: Optional[Dict[str, Any]] = None
+
+    def normalize_category(header_title: str) -> str:
+        """
+        header_title is text after ◆, e.g. "男子シングルス本戦1R"
+        returns just "男子シングルス" etc if found; else returns raw.
+        """
+        m = CATEGORY_RE.match(header_title.strip())
+        return m.group(1) if m else header_title.strip()
 
     def flush_block():
         nonlocal current_block
-        if current_player and current_block:
-            current_player["blocks"].append(current_block)
-            current_block = None
+        if current_player is not None and current_block is not None:
+            # avoid appending empty blocks
+            if current_block["lines"] or current_block["stage"]:
+                current_player["blocks"].append(current_block)
+        current_block = None
 
     def flush_player():
         nonlocal current_player
         flush_block()
-        if current_section and current_player:
-            # drop players with no content
-            if current_player["blocks"]:
-                current_section["players"].append(current_player)
         current_player = None
+
+    def start_section(raw_title: str):
+        nonlocal current_section, player_index, current_player, current_block
+
+        flush_player()
+
+        cat = normalize_category(raw_title)
+
+        # If the next header is the same category, continue the same section
+        # (this handles "◆男子シングルス本戦1R" then later "◆男子シングルス本戦2R")
+        if current_section is not None and current_section.get("category") == cat:
+            return
+
+        current_section = {"category": cat, "players": []}
+        sections.append(current_section)
+        player_index = {}
+        current_player = None
+        current_block = None
 
     i = 0
     while i < len(lines):
@@ -66,9 +98,7 @@ def parse_bracket(text: str) -> List[Dict[str, Any]]:
 
         hm = HEADER_RE.match(ln)
         if hm:
-            flush_player()
-            current_section = {"category": hm.group("title").strip(), "players": []}
-            sections.append(current_section)
+            start_section(hm.group("title"))
             i += 1
             continue
 
@@ -86,25 +116,38 @@ def parse_bracket(text: str) -> List[Dict[str, Any]]:
             i += 1
             continue
 
-        # new player name
+        # Decide if this line starts a NEW player
+        # Rule: if we have no current_player OR we just finished a player and next looks like a name.
+        # In this format, a name line is followed by either [本戦]/[予選] OR a result line.
         if current_player is None:
-            current_player = {"name": ln, "blocks": []}
+            name = ln
+
+            # Reuse existing player object in this section if same name appears again
+            if name in player_index:
+                current_player = player_index[name]
+            else:
+                current_player = {"name": name, "blocks": []}
+                player_index[name] = current_player
+                current_section["players"].append(current_player)
+
             current_block = None
             i += 1
             continue
 
-        # result line
+        # Otherwise: treat as result line
         if current_block is None:
-            # if user forgot to write [本戦]/[予選], store lines anyway
+            # If user didn't write [本戦]/[予選], store lines under stage=""
             current_block = {"stage": "", "lines": []}
+
         current_block["lines"].append(ln)
         i += 1
 
     flush_player()
 
-    # drop empty sections
-    sections = [s for s in sections if s["players"]]
+    # Remove empty sections
+    sections = [s for s in sections if s.get("players")]
     return sections
+
 
 
 # ============================================================
@@ -182,49 +225,96 @@ def github_put_file(
 
 
 # ============================================================
-# 4) “ADD NEW ROWS EACH DAY” STORAGE MODEL
-#    - Keep a JSON log in the repo: data/days.json
-#    - Each day append: {"date":"YYYY-MM-DD","title":"...","sections":[...]}
-#    - Re-render:
-#        (a) latest.html (today)
-#        (b) archive/YYYY-MM-DD.html
-#        (c) optional: index.html listing all days
+# 4) JSON Stuff
 # ============================================================
-DATA_PATH = "data/days.json"
+STATE_PATH = "data/state.json"
 PUBLISH_LATEST = "latest.html"
 
-def load_days(token: str, owner: str, repo: str, branch: str) -> List[Dict[str, Any]]:
-    txt = github_get_file_text(owner, repo, DATA_PATH, token, branch=branch)
+def load_state(token: str, owner: str, repo: str, branch: str) -> Dict[str, Any]:
+    txt = github_get_file_text(owner, repo, STATE_PATH, token, branch=branch)
     if not txt:
-        return []
+        return {"title": "結果速報", "last_updated": "", "sections": []}
     try:
         data = json.loads(txt)
-        return data if isinstance(data, list) else []
+        if not isinstance(data, dict):
+            return {"title": "結果速報", "last_updated": "", "sections": []}
+        data.setdefault("title", "結果速報")
+        data.setdefault("last_updated", "")
+        data.setdefault("sections", [])
+        return data
     except json.JSONDecodeError:
-        return []
+        return {"title": "結果速報", "last_updated": "", "sections": []}
 
-def save_days(days: List[Dict[str, Any]], token: str, owner: str, repo: str, branch: str) -> None:
-    b = json.dumps(days, ensure_ascii=False, indent=2).encode("utf-8")
+def save_state(state: Dict[str, Any], token: str, owner: str, repo: str, branch: str) -> None:
+    b = json.dumps(state, ensure_ascii=False, indent=2).encode("utf-8")
     github_put_file(
-        owner=owner, repo=repo, path=DATA_PATH,
+        owner=owner, repo=repo, path=STATE_PATH,
         content_bytes=b,
-        message=f"Update {DATA_PATH} ({dt.datetime.now().isoformat(timespec='seconds')})",
+        message=f"Update {STATE_PATH} ({dt.datetime.now().isoformat(timespec='seconds')})",
         token=token, branch=branch
     )
 
-def render_index_html(days: List[Dict[str, Any]]) -> str:
+def merge_events_into_state(state: Dict[str, Any], events: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Simple list page (optional). Create templates/index.html if you want nicer styling.
+    events: sections list in template shape:
+      [{"category":..., "players":[{"name":..., "blocks":[{"stage":..., "lines":[...]}]}]}]
+    Merges by:
+      category + player + stage, de-dupe exact lines, preserve order.
     """
-    items = []
-    for d in sorted(days, key=lambda x: x.get("date",""), reverse=True):
-        date = d.get("date","")
-        title = d.get("title","結果速報")
-        items.append(f'<li><a href="archive/{date}.html">{date} — {title}</a></li>')
-    return f"""<!doctype html>
-<html lang="ja"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>結果一覧</title></head>
-<body><h1>結果一覧</h1><ul>{"".join(items)}</ul></body></html>"""
+    # Index existing state
+    sections = state.get("sections", [])
+    sec_map: Dict[str, Dict[str, Any]] = {s["category"]: s for s in sections if "category" in s}
+
+    def get_or_create_section(category: str) -> Dict[str, Any]:
+        if category not in sec_map:
+            s = {"category": category, "players": []}
+            sec_map[category] = s
+            sections.append(s)
+        return sec_map[category]
+
+    for ev_sec in events:
+        category = ev_sec.get("category", "").strip()
+        if not category:
+            continue
+
+        s = get_or_create_section(category)
+
+        # player index within this section
+        p_map: Dict[str, Dict[str, Any]] = {p["name"]: p for p in s.get("players", []) if "name" in p}
+
+        for ev_p in ev_sec.get("players", []):
+            name = (ev_p.get("name") or "").strip()
+            if not name:
+                continue
+
+            if name not in p_map:
+                p = {"name": name, "blocks": []}
+                s["players"].append(p)
+                p_map[name] = p
+            p = p_map[name]
+
+            # block index by stage
+            b_map: Dict[str, Dict[str, Any]] = {b.get("stage",""): b for b in p.get("blocks", [])}
+
+            for ev_b in ev_p.get("blocks", []):
+                stage = (ev_b.get("stage") or "").strip()  # "本戦"/"予選"/""
+                lines = [ln.strip() for ln in ev_b.get("lines", []) if ln.strip()]
+
+                if stage not in b_map:
+                    b = {"stage": stage, "lines": []}
+                    p["blocks"].append(b)
+                    b_map[stage] = b
+                b = b_map[stage]
+
+                existing = set(b.get("lines", []))
+                for ln in lines:
+                    if ln not in existing:
+                        b["lines"].append(ln)
+                        existing.add(ln)
+
+    state["sections"] = sections
+    return state
+
 
 
 # ============================================================
@@ -285,9 +375,6 @@ def admin():
 
 @app.post("/publish")
 def publish(raw: str = Form(...), password: str = Form(""), title: str = Form("")):
-    # password behavior:
-    # - if ADMIN_PASSWORD is empty, anyone can publish
-    # - if set, the user must input it
     if ADMIN_PASSWORD and password != ADMIN_PASSWORD:
         return PlainTextResponse("Unauthorized", status_code=401)
 
@@ -295,60 +382,56 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
         return PlainTextResponse("Missing GITHUB_TOKEN env var", status_code=500)
 
     today = dt.date.today().isoformat()
-    sections = parse_bracket(raw)
-
-    if not sections:
-        return PlainTextResponse("Parsed 0 sections. Check your pasted format.", status_code=400)
-
     page_title = title.strip() or "結果速報"
 
-    # 1) Append today to JSON log (or replace if same date already exists)
-    days = load_days(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
-    days = [d for d in days if d.get("date") != today]
-    days.append({"date": today, "title": page_title, "sections": sections})
-    save_days(days, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
+    # 1) Parse today's paste into "events"
+    # IMPORTANT: use the parser matching your input format:
+    events = parse_pair_headers(raw)   # <-- from the earlier message
+    # OR, if you paste the bracket format with [本戦]/[予選]:
+    # events = parse_bracket(raw)
 
-    # 2) Render today HTML from template
+    if not events:
+        return PlainTextResponse("Parsed 0 sections. Check your pasted format.", status_code=400)
+
+    # 2) Load cumulative state, merge today's events, save back
+    state = load_state(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
+    state["title"] = page_title
+    state["last_updated"] = today
+    state = merge_events_into_state(state, events)
+    save_state(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
+
+    # 3) Render cumulative results (NOT just today's)
     html = render_bracket_html(
-        sections=sections,
-        title=page_title,
-        updated_date=today
+        sections=state["sections"],
+        title=state["title"],
+        updated_date=state["last_updated"],
     ).encode("utf-8")
 
-    # 3) Publish latest.html + archive copy
+    # 4) Publish latest + archive snapshot
     github_put_file(
         owner=GH_OWNER, repo=GH_REPO, path=PUBLISH_LATEST,
         content_bytes=html,
         message=f"Update {PUBLISH_LATEST} ({dt.datetime.now().isoformat(timespec='seconds')})",
         token=GH_TOKEN, branch=GH_BRANCH
     )
+
     archive_path = f"archive/{today}.html"
     github_put_file(
         owner=GH_OWNER, repo=GH_REPO, path=archive_path,
         content_bytes=html,
-        message=f"Archive results ({today})",
-        token=GH_TOKEN, branch=GH_BRANCH
-    )
-
-    # 4) Optional: publish an index page listing all days
-    index_html = render_index_html(days).encode("utf-8")
-    github_put_file(
-        owner=GH_OWNER, repo=GH_REPO, path="index.html",
-        content_bytes=index_html,
-        message=f"Update index.html ({dt.datetime.now().isoformat(timespec='seconds')})",
+        message=f"Archive cumulative results ({today})",
         token=GH_TOKEN, branch=GH_BRANCH
     )
 
     return HTMLResponse(
         f"""
-        <p>Published:</p>
+        <p>Updated cumulative state and published cumulative page.</p>
         <ul>
+          <li><code>{STATE_PATH}</code></li>
           <li><code>{PUBLISH_LATEST}</code></li>
           <li><code>{archive_path}</code></li>
-          <li><code>{DATA_PATH}</code></li>
-          <li><code>index.html</code></li>
         </ul>
         <p>Latest URL: <code>https://{GH_OWNER}.github.io/{GH_REPO}/{PUBLISH_LATEST}</code></p>
-        <p>Archive URL: <code>https://{GH_OWNER}.github.io/{GH_REPO}/{archive_path}</code></p>
         """
     )
+

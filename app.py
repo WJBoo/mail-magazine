@@ -313,8 +313,7 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
         return PlainTextResponse("Missing GITHUB_TOKEN env var", status_code=500)
 
     today = dt.date.today().isoformat()
-    sections = parse_results(raw)
-    sections = merge_sections_by_category(sections)
+    sections = parse_bracket(raw)
 
     if not sections:
         return PlainTextResponse("Parsed 0 sections. Check your pasted format.", status_code=400)

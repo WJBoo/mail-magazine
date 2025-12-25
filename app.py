@@ -107,24 +107,6 @@ def parse_bracket(text: str) -> List[Dict[str, Any]]:
     return sections
 
 
-
-def merge_sections_by_category(sections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    If you have multiple headers like:
-      ◆男子シングルス本戦1R
-      ◆男子シングルス本戦2R
-    this merges them into one "男子シングルス" section with all entries.
-    """
-    out: Dict[str, Dict[str, Any]] = {}
-    for s in sections:
-        cat = s.get("category", "")
-        if cat not in out:
-            out[cat] = {"category": cat, "entries": []}
-        out[cat]["entries"].extend(s.get("entries", []))
-    return list(out.values())
-
-
-
 # ============================================================
 # 2) RENDERING
 # ============================================================

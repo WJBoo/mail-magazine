@@ -31,101 +31,125 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 # ...
 
 HEADER_RE = re.compile(r"^◆(?P<title>.+)$")
-STAGE_RE = re.compile(r"^\[(?P<stage>本戦|予選)\]$")
-# "round line" is anything non-empty that is not header/stage
-# We keep it as plain text (already includes opponent/affiliation if present)
 
-def parse_bracket(text: str) -> List[Dict[str, Any]]:
+SECTION_RE = re.compile(
+    r"^(?P<category>男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)"
+    r"(?P<stage>予選|本戦)"
+    r"(?P<round>.*)$"
+)
+
+SCORELINE_RE = re.compile(
+    r"^(?P<score>.+?)\s+(?P<opp>.+?)(?:\((?P<aff>.+)\))?$"
+)
+
+def normalize_round(raw: str) -> str:
+    return raw.strip()
+
+def parse_results(text: str) -> List[Dict[str, Any]]:
     """
-    Returns:
-    sections = [
+    Output:
+    [
       {
-        "category": "男子シングルス",
-        "players": [
-          {"name":"菅谷優作","stage":"本戦","lines":["1R bye","2R 6-2/... 大下翔希(近畿大学)", ...]},
+        "category":"男子シングルス",
+        "entries":[
+          {
+            "name":"眞田将吾",
+            "round":"1R",
+            "score":"4-6/6(4)-7",
+            "opponent":"杉本一樹",
+            "opponent_affiliation":"明治大学"
+          },
           ...
         ]
-      }, ...
+      },
+      ...
     ]
     """
-    raw_lines = text.replace("\r\n", "\n").split("\n")
-    lines = [ln.rstrip() for ln in raw_lines]
-
-    # trim leading/trailing blank lines
-    while lines and lines[0].strip() == "":
+    lines = [ln.strip() for ln in text.replace("\r\n", "\n").split("\n")]
+    while lines and lines[0] == "":
         lines.pop(0)
-    while lines and lines[-1].strip() == "":
+    while lines and lines[-1] == "":
         lines.pop()
 
     sections: List[Dict[str, Any]] = []
-    current_section: Optional[Dict[str, Any]] = None
-    current_player: Optional[Dict[str, Any]] = None
-
-    def flush_player():
-        nonlocal current_player, current_section
-        if current_section is None or current_player is None:
-            return
-        # keep only if has any meaningful content
-        if current_player.get("name") and (current_player.get("lines") or current_player.get("stage")):
-            current_section["players"].append(current_player)
-        current_player = None
-
-    def start_section(title: str):
-        nonlocal current_section, current_player
-        # flush previous player and section
-        flush_player()
-        if current_section is not None and current_section.get("players"):
-            sections.append(current_section)
-        current_section = {"category": title.strip(), "players": []}
-        current_player = None
-
+    current: Optional[Dict[str, Any]] = None
     i = 0
-    while i < len(lines):
-        ln = lines[i].strip()
 
+    def start_section(title_line: str) -> Dict[str, Any]:
+        m = SECTION_RE.match(title_line)
+        if not m:
+            # Fallback: treat entire title as category
+            return {"category": title_line, "round": "", "entries": []}
+        return {
+            "category": m.group("category"),
+            "stage": m.group("stage"),
+            "round": normalize_round(m.group("round")),  # e.g. "1R", "F", "SF"
+            "entries": [],
+        }
+
+    while i < len(lines):
+        ln = lines[i]
         if ln == "":
-            # blank line ends a player block (if we already started one)
-            flush_player()
             i += 1
             continue
 
         hm = HEADER_RE.match(ln)
         if hm:
-            start_section(hm.group("title"))
+            title = hm.group("title").strip()
+            current = start_section(title)
+            sections.append(current)
             i += 1
             continue
 
-        if current_section is None:
-            # ignore anything before first header
+        if current is None:
             i += 1
             continue
 
-        sm = STAGE_RE.match(ln)
-        if sm:
-            if current_player is None:
-                # stage without a player name: create placeholder
-                current_player = {"name": "", "stage": sm.group("stage"), "lines": []}
-            else:
-                current_player["stage"] = sm.group("stage")
+        # Name line
+        name = ln
+
+        # Next non-empty line should be score line
+        j = i + 1
+        while j < len(lines) and lines[j].strip() == "":
+            j += 1
+        if j >= len(lines):
+            break
+
+        sm = SCORELINE_RE.match(lines[j].strip())
+        if not sm:
             i += 1
             continue
 
-        # Otherwise it's either a player name (if no current_player) or a line of that player
-        if current_player is None:
-            current_player = {"name": ln, "stage": "", "lines": []}
-        else:
-            # If we have a player but no stage and no lines yet, and this line looks like a name,
-            # we still treat it as a line unless a blank line separated it.
-            current_player["lines"].append(ln)
+        entry = {
+            "name": name,
+            "round": current.get("round", ""),  # inherited from section header
+            "score": sm.group("score").strip(),
+            "opponent": sm.group("opp").strip(),
+            "opponent_affiliation": (sm.group("aff") or "").strip(),
+        }
+        current["entries"].append(entry)
+        i = j + 1
 
-        i += 1
-
-    # flush at end
-    flush_player()
-    if current_section is not None and current_section.get("players"):
-        sections.append(current_section)
-
+    # drop sections with no entries
+    sections = [s for s in sections if s.get("entries")]
     return sections
+
+
+def merge_sections_by_category(sections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    If you have multiple headers like:
+      ◆男子シングルス本戦1R
+      ◆男子シングルス本戦2R
+    this merges them into one "男子シングルス" section with all entries.
+    """
+    out: Dict[str, Dict[str, Any]] = {}
+    for s in sections:
+        cat = s.get("category", "")
+        if cat not in out:
+            out[cat] = {"category": cat, "entries": []}
+        out[cat]["entries"].extend(s.get("entries", []))
+    return list(out.values())
+
 
 
 # ============================================================

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title }}</title>
+  <style>
+    *{ box-sizing:border-box; }
+    html, body{ margin:0; padding:0; width:100%; }
+    body{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+
+    .results{
+      background:#050b3d;
+      color:#fff;
+
+      font-family:
+        "Avenir Light","Avenir","Avenir Next","Helvetica Neue",
+        "Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+
+      line-height:1.7;
+
+      display:flex;
+      justify-content:center;
+
+      padding:28px 0 60px 0;
+      width:100%;
+    }
+
+    .results-shell{
+      width:100%;
+      max-width:1100px;
+      margin-left:auto;
+      margin-right:auto;
+      padding:0 56px;
+    }
+
+    .meta{
+      opacity:.9;
+      font-size:14px;
+      margin:0 0 14px 0;
+    }
+
+    .cols{
+      display:flex;
+      gap:110px;
+      align-items:flex-start;
+      justify-content:center;
+    }
+
+    .col{ flex:0 1 460px; min-width:0; }
+
+    .section-title{ font-size:22px; font-weight:600; margin:0 0 16px 0; letter-spacing:.02em; }
+    .player-name{ font-size:20px; font-weight:500; margin:20px 0 6px 0; }
+    .subhead{ font-size:16px; opacity:0.95; margin:0 0 6px 0; }
+    .line{ font-size:16px; margin:2px 0; }
+    .spacer{ height:16px; }
+    .block-gap{ height:30px; }
+
+    @media (max-width: 700px){
+      .results-shell{ padding:0 20px; max-width:520px; }
+      .cols{ display:block; }
+      .col{ width:100%; max-width:520px; margin:0 auto 26px auto; }
+      .section-title{ font-size:18px; }
+      .player-name{ font-size:18px; }
+      .subhead, .line{ font-size:15px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="results">
+    <div class="results-shell">
+      <div class="meta">{{ title }} / 更新: {{ updated_date }}</div>
+
+      {# Split sections into two columns for desktop. Simple alternating split. #}
+      {% set left = sections[0::2] %}
+      {% set right = sections[1::2] %}
+
+      <div class="cols">
+        <section class="col">
+          {% for s in left %}
+            <h2 class="section-title">◆{{ s.category }}{{ s.stage }}{{ s.round }}</h2>
+            {% for e in s.entries %}
+              <div class="player-name">{{ e.name }}</div>
+              <div class="line">
+                {{ e.score }} {{ e.opponent }}{% if e.opponent_affiliation %}({{ e.opponent_affiliation }}){% endif %}
+              </div>
+            {% endfor %}
+            <div class="block-gap"></div>
+          {% endfor %}
+        </section>
+
+        <section class="col">
+          {% for s in right %}
+            <h2 class="section-title">◆{{ s.category }}{{ s.stage }}{{ s.round }}</h2>
+            {% for e in s.entries %}
+              <div class="player-name">{{ e.name }}</div>
+              <div class="line">
+                {{ e.score }} {{ e.opponent }}{% if e.opponent_affiliation %}({{ e.opponent_affiliation }}){% endif %}
+              </div>
+            {% endfor %}
+            <div class="block-gap"></div>
+          {% endfor %}
+        </section>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

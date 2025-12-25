@@ -12,32 +12,50 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # Email Code
-import base64
-import pickle
+import os, base64, json
 from email.mime.text import MIMEText
-from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
 
-def send_gmail_html(to_email: str, subject: str, html: str):
-    token_b64 = os.environ["GMAIL_TOKEN_BASE64"]
-    sender = os.environ["GMAIL_SENDER"]
+SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
-    creds = pickle.loads(base64.b64decode(token_b64))
-    if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
+def send_gmail_html(to_email: str, subject: str, html: str, from_user: str = "me"):
+    client_b64 = os.environ.get("GMAIL_CLIENT_B64", "")
+    token_b64  = os.environ.get("GMAIL_TOKEN_B64", "")
+    if not client_b64 or not token_b64:
+        raise RuntimeError("Missing GMAIL_CLIENT_B64 or GMAIL_TOKEN_B64 env var")
+
+    client_info = json.loads(base64.b64decode(client_b64).decode("utf-8"))
+    token_info  = json.loads(base64.b64decode(token_b64).decode("utf-8"))
+
+    creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+
+    # IMPORTANT: creds need client_id/client_secret to refresh
+    # token.json usually already contains them; if not, inject from credentials.json
+    installed = client_info.get("installed") or client_info.get("web") or {}
+    if not creds.client_id:
+        creds.client_id = installed.get("client_id")
+    if not creds.client_secret:
+        creds.client_secret = installed.get("client_secret")
+    if not creds.token_uri:
+        creds.token_uri = installed.get("token_uri", "https://oauth2.googleapis.com/token")
+
+    if not creds.valid:
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            raise RuntimeError("Gmail creds invalid and cannot refresh (missing refresh_token). Recreate token.json.")
 
     service = build("gmail", "v1", credentials=creds)
 
     msg = MIMEText(html, "html", "utf-8")
     msg["To"] = to_email
-    msg["From"] = sender
     msg["Subject"] = subject
 
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-    service.users().messages().send(
-        userId="me",
-        body={"raw": raw}
-    ).execute()
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
+    service.users().messages().send(userId=from_user, body={"raw": raw}).execute()
+
 
 # ============================================================
 # 1) PARSING (new “bracket + multi-line per player” format)

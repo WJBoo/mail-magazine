@@ -12,8 +12,9 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # Email Code
-import os, base64, json
+import os, base64, json, re
 from email.mime.text import MIMEText
+
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
@@ -26,28 +27,40 @@ def send_gmail_html(to_email: str, subject: str, html: str, from_user: str = "me
     if not client_b64 or not token_b64:
         raise RuntimeError("Missing GMAIL_CLIENT_B64 or GMAIL_TOKEN_B64 env var")
 
+    # strip whitespace/newlines just in case Render wrapped it
+    client_b64 = re.sub(r"\s+", "", client_b64)
+    token_b64  = re.sub(r"\s+", "", token_b64)
+
     client_info = json.loads(base64.b64decode(client_b64).decode("utf-8"))
     token_info  = json.loads(base64.b64decode(token_b64).decode("utf-8"))
 
-    creds = Credentials.from_authorized_user_info(token_info, SCOPES)
-
-    # IMPORTANT: creds need client_id/client_secret to refresh
-    # token.json usually already contains them; if not, inject from credentials.json
     installed = client_info.get("installed") or client_info.get("web") or {}
-    if not creds.client_id:
-        creds.client_id = installed.get("client_id")
-    if not creds.client_secret:
-        creds.client_secret = installed.get("client_secret")
-    if not creds.token_uri:
-        creds.token_uri = installed.get("token_uri", "https://oauth2.googleapis.com/token")
+    if not installed:
+        raise RuntimeError("credentials.json missing 'installed' or 'web' block")
 
-    if not creds.valid:
-        if creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            raise RuntimeError("Gmail creds invalid and cannot refresh (missing refresh_token). Recreate token.json.")
+    # Build creds from token.json
+    creds = Credentials.from_authorized_user_info(token_info, scopes=SCOPES)
 
-    service = build("gmail", "v1", credentials=creds)
+    # Ensure refresh configuration exists (needed on servers)
+    creds.client_id = creds.client_id or installed.get("client_id")
+    creds.client_secret = creds.client_secret or installed.get("client_secret")
+    creds.token_uri = creds.token_uri or installed.get("token_uri", "https://oauth2.googleapis.com/token")
+
+    # IMPORTANT: server must be able to refresh
+    # If refresh_token is missing, you will never get an access token on Render.
+    if not creds.refresh_token:
+        raise RuntimeError(
+            "token.json has no refresh_token. Re-create token.json with InstalledAppFlow and gmail.send scope."
+        )
+
+    # Force refresh to guarantee Authorization header is sent
+    creds.refresh(Request())
+
+    # Debug once in Render logs (remove later)
+    print("GMAIL AUTH DEBUG:",
+          {"has_token": bool(creds.token), "expired": creds.expired, "scopes": creds.scopes})
+
+    service = build("gmail", "v1", credentials=creds, cache_discovery=False)
 
     msg = MIMEText(html, "html", "utf-8")
     msg["To"] = to_email

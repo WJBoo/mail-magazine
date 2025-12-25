@@ -397,7 +397,7 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
         token=GH_TOKEN, branch=GH_BRANCH
     )
     send_gmail_html(
-    to_email="recipient@example.com",
+    to_email="wboo@college.harvard.edu",
     subject=f"{page_title}（{today}）",
     html=html.decode("utf-8")
     )

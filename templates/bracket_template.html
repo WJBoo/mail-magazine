@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title }}</title>
+  <style>
+    *{ box-sizing:border-box; }
+    html, body{ margin:0; padding:0; width:100%; }
+    body{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+
+    .results{
+      background:#050b3d;
+      color:#fff;
+
+      font-family:
+        "Avenir Light","Avenir","Avenir Next","Helvetica Neue",
+        "Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+
+      line-height:1.75;
+      display:flex;
+      justify-content:center;
+      padding:28px 0 70px 0;
+      width:100%;
+    }
+
+    .results-shell{
+      width:100%;
+      max-width:1100px;
+      margin-left:auto;
+      margin-right:auto;
+      padding:0 56px;
+    }
+
+    .meta{
+      opacity:.9;
+      font-size:14px;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    .cols{
+      display:flex;
+      gap:110px;
+      align-items:flex-start;
+      justify-content:center;
+    }
+
+    .col{ flex:0 1 460px; min-width:0; }
+
+    /* Section heading like: ◆男子シングルス */
+    .section-title{
+      font-size:20px;
+      font-weight:600;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    /* A “player block” is: name, [stage], then round lines */
+    .player-block{ margin:0 0 26px 0; }
+
+    .player-name{
+      font-size:18px;
+      font-weight:500;
+      margin:0 0 4px 0;
+      letter-spacing:.01em;
+    }
+
+    .stage{
+      font-size:16px;
+      opacity:.95;
+      margin:0 0 6px 0;
+    }
+
+    /* Each result line like: 2R 6-2/3-6/11-9 大下翔希(近畿大学) */
+    .line{
+      font-size:16px;
+      margin:2px 0;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .block-gap{ height:18px; }
+
+    @media (max-width: 700px){
+      .results-shell{ padding:0 20px; max-width:520px; }
+      .cols{ display:block; }
+      .col{ width:100%; max-width:520px; margin:0 auto 26px auto; }
+
+      .section-title{ font-size:18px; }
+      .player-name{ font-size:17px; }
+      .stage, .line{ font-size:15px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="results">
+    <div class="results-shell">
+      <div class="meta">{{ title }} / 更新: {{ updated_date }}</div>
+
+      {# Split sections into two columns for desktop; alternating distribution #}
+      {% set left = sections[0::2] %}
+      {% set right = sections[1::2] %}
+
+      <div class="cols">
+        <!-- LEFT COLUMN -->
+        <section class="col">
+          {% for s in left %}
+            <h2 class="section-title">◆{{ s.category }}</h2>
+
+            {# s.players is a list of player blocks in this section #}
+            {% for p in s.players %}
+              <div class="player-block">
+                <div class="player-name">{{ p.name }}</div>
+                {% if p.stage %}
+                  <div class="stage">[{{ p.stage }}]</div>
+                {% endif %}
+
+                {# p.lines is a list of strings; keep as-is (e.g., "1R bye") #}
+                {% for ln in p.lines %}
+                  <div class="line">{{ ln }}</div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+
+            <div class="block-gap"></div>
+          {% endfor %}
+        </section>
+
+        <!-- RIGHT COLUMN -->
+        <section class="col">
+          {% for s in right %}
+            <h2 class="section-title">◆{{ s.category }}</h2>
+
+            {% for p in s.players %}
+              <div class="player-block">
+                <div class="player-name">{{ p.name }}</div>
+                {% if p.stage %}
+                  <div class="stage">[{{ p.stage }}]</div>
+                {% endif %}
+
+                {% for ln in p.lines %}
+                  <div class="line">{{ ln }}</div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+
+            <div class="block-gap"></div>
+          {% endfor %}
+        </section>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

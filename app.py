@@ -311,7 +311,7 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
     state = load_state(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
     state["title"] = page_title
     state["last_updated"] = today
-    state = merge_events_into_state(state, events)
+    state = merge_into_state(state, events)
     save_state(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
 
     # 3) Render cumulative results (NOT just today's)

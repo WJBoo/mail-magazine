@@ -1,9 +1,9 @@
 import os
 import re
+import json
 import base64
 import datetime as dt
-from dataclasses import dataclass
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 
 import requests
 from fastapi import FastAPI, Form
@@ -11,133 +11,137 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
-# ----------------------------
-# Parsing
-# ----------------------------
+# ============================================================
+# 1) PARSING (new “bracket + multi-line per player” format)
+# ============================================================
+# Input format you want to paste (example):
+# ◆男子シングルス
+# 菅谷優作
+# [本戦]
+# 1R bye
+# 2R 6-2/3-6/11-9 大下翔希(近畿大学)
+# ...
+#
+# (blank line)
+# 次の選手名
+# [本戦]
+# ...
+#
+# ◆女子シングルス
+# ...
 
 HEADER_RE = re.compile(r"^◆(?P<title>.+)$")
-# Example header: 男子シングルス本戦1R / 女子ダブルス予選F
-SECTION_RE = re.compile(
-    r"^(?P<category>男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)"
-    r"(?P<stage>予選|本戦)"
-    r"(?P<round>.*)$"
-)
+STAGE_RE = re.compile(r"^\[(?P<stage>本戦|予選)\]$")
+# "round line" is anything non-empty that is not header/stage
+# We keep it as plain text (already includes opponent/affiliation if present)
 
-# Match score line (very permissive):
-# 4-6/6(4)-7 杉本一樹(明治大学)
-SCORELINE_RE = re.compile(
-    r"^(?P<score>.+?)\s+(?P<opp>.+?)(?:\((?P<aff>.+)\))?$"
-)
-
-def normalize_round(raw: str) -> str:
-    s = raw.strip()
-    # Optional normalization: "1R" -> "1R", "F" -> "F", "SF" -> "SF"
-    return s if s else ""
-
-def parse_results(text: str) -> List[Dict[str, Any]]:
+def parse_bracket(text: str) -> List[Dict[str, Any]]:
     """
-    Returns a list of sections:
-    [
+    Returns:
+    sections = [
       {
-        "category": "...",
-        "stage": "...",
-        "round": "...",
-        "entries": [
-           {"name": "...", "score": "...", "opponent": "...", "opponent_affiliation": "..."}
+        "category": "男子シングルス",
+        "players": [
+          {"name":"菅谷優作","stage":"本戦","lines":["1R bye","2R 6-2/... 大下翔希(近畿大学)", ...]},
+          ...
         ]
       }, ...
     ]
     """
-    lines = [ln.strip() for ln in text.replace("\r\n", "\n").split("\n")]
-    # Keep blank lines as separators but remove leading/trailing blanks
-    while lines and lines[0] == "":
+    raw_lines = text.replace("\r\n", "\n").split("\n")
+    lines = [ln.rstrip() for ln in raw_lines]
+
+    # trim leading/trailing blank lines
+    while lines and lines[0].strip() == "":
         lines.pop(0)
-    while lines and lines[-1] == "":
+    while lines and lines[-1].strip() == "":
         lines.pop()
 
     sections: List[Dict[str, Any]] = []
+    current_section: Optional[Dict[str, Any]] = None
+    current_player: Optional[Dict[str, Any]] = None
+
+    def flush_player():
+        nonlocal current_player, current_section
+        if current_section is None or current_player is None:
+            return
+        # keep only if has any meaningful content
+        if current_player.get("name") and (current_player.get("lines") or current_player.get("stage")):
+            current_section["players"].append(current_player)
+        current_player = None
+
+    def start_section(title: str):
+        nonlocal current_section, current_player
+        # flush previous player and section
+        flush_player()
+        if current_section is not None and current_section.get("players"):
+            sections.append(current_section)
+        current_section = {"category": title.strip(), "players": []}
+        current_player = None
+
     i = 0
-    current: Optional[Dict[str, Any]] = None
-
-    def start_section(title_line: str) -> Dict[str, Any]:
-        m = SECTION_RE.match(title_line)
-        if not m:
-            # Fallback: store as raw title
-            return {"category": title_line, "stage": "", "round": "", "entries": []}
-        return {
-            "category": m.group("category"),
-            "stage": m.group("stage"),
-            "round": normalize_round(m.group("round")),
-            "entries": [],
-        }
-
     while i < len(lines):
-        ln = lines[i]
+        ln = lines[i].strip()
 
         if ln == "":
+            # blank line ends a player block (if we already started one)
+            flush_player()
             i += 1
             continue
 
         hm = HEADER_RE.match(ln)
         if hm:
-            # New section
-            title = hm.group("title").strip()
-            current = start_section(title)
-            sections.append(current)
+            start_section(hm.group("title"))
             i += 1
             continue
 
-        if current is None:
-            # Ignore anything before the first header
+        if current_section is None:
+            # ignore anything before first header
             i += 1
             continue
 
-        # Expect participant name line then score line
-        name = ln
-        # Look ahead for score line
-        j = i + 1
-        while j < len(lines) and lines[j].strip() == "":
-            j += 1
-        if j >= len(lines):
-            break
-
-        score_ln = lines[j].strip()
-        sm = SCORELINE_RE.match(score_ln)
-        if not sm:
-            # If the next line isn't a score line, skip this line
+        sm = STAGE_RE.match(ln)
+        if sm:
+            if current_player is None:
+                # stage without a player name: create placeholder
+                current_player = {"name": "", "stage": sm.group("stage"), "lines": []}
+            else:
+                current_player["stage"] = sm.group("stage")
             i += 1
             continue
 
-        entry = {
-            "name": name,
-            "score": sm.group("score").strip(),
-            "opponent": sm.group("opp").strip(),
-            "opponent_affiliation": (sm.group("aff") or "").strip(),
-        }
-        current["entries"].append(entry)
+        # Otherwise it's either a player name (if no current_player) or a line of that player
+        if current_player is None:
+            current_player = {"name": ln, "stage": "", "lines": []}
+        else:
+            # If we have a player but no stage and no lines yet, and this line looks like a name,
+            # we still treat it as a line unless a blank line separated it.
+            current_player["lines"].append(ln)
 
-        i = j + 1
+        i += 1
 
-    # Drop empty sections (no entries)
-    sections = [s for s in sections if s.get("entries")]
+    # flush at end
+    flush_player()
+    if current_section is not None and current_section.get("players"):
+        sections.append(current_section)
+
     return sections
 
 
-# ----------------------------
-# Rendering
-# ----------------------------
-
+# ============================================================
+# 2) RENDERING
+# ============================================================
 env = Environment(
     loader=FileSystemLoader("templates"),
     autoescape=select_autoescape(["html"])
 )
 
-def render_latest_html(
+def render_bracket_html(
     sections: List[Dict[str, Any]],
     title: str = "結果速報",
     updated_date: Optional[str] = None
 ) -> str:
-    tmpl = env.get_template("individual_results.html")
+    tmpl = env.get_template("bracket_template.html")  # <-- use the template I gave you
     return tmpl.render(
         title=title,
         updated_date=updated_date or dt.date.today().isoformat(),
@@ -145,9 +149,25 @@ def render_latest_html(
     )
 
 
-# ----------------------------
-# GitHub publish (Contents API)
-# ----------------------------
+# ============================================================
+# 3) GITHUB HELPERS (read + write files via Contents API)
+# ============================================================
+def gh_headers(token: str) -> Dict[str, str]:
+    return {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "results-publisher",
+    }
+
+def github_get_file_text(owner: str, repo: str, path: str, token: str, branch: str = "main") -> Optional[str]:
+    api = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+    r = requests.get(api, headers=gh_headers(token), params={"ref": branch}, timeout=20)
+    if r.status_code == 404:
+        return None
+    if r.status_code != 200:
+        raise RuntimeError(f"GitHub GET failed {r.status_code}: {r.text}")
+    content_b64 = r.json()["content"]
+    return base64.b64decode(content_b64).decode("utf-8")
 
 def github_put_file(
     owner: str,
@@ -158,17 +178,10 @@ def github_put_file(
     token: str,
     branch: str = "main"
 ) -> None:
-    """
-    Create or update a file via GitHub Contents API.
-    """
     api = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-    headers = {
-        "Authorization": f"token {token}",
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "results-publisher",
-    }
+    headers = gh_headers(token)
 
-    # Check if file exists to get sha
+    # get sha if exists
     sha = None
     r = requests.get(api, headers=headers, params={"ref": branch}, timeout=20)
     if r.status_code == 200:
@@ -189,18 +202,62 @@ def github_put_file(
         raise RuntimeError(f"GitHub PUT failed {w.status_code}: {w.text}")
 
 
-# ----------------------------
-# FastAPI admin
-# ----------------------------
+# ============================================================
+# 4) “ADD NEW ROWS EACH DAY” STORAGE MODEL
+#    - Keep a JSON log in the repo: data/days.json
+#    - Each day append: {"date":"YYYY-MM-DD","title":"...","sections":[...]}
+#    - Re-render:
+#        (a) latest.html (today)
+#        (b) archive/YYYY-MM-DD.html
+#        (c) optional: index.html listing all days
+# ============================================================
+DATA_PATH = "data/days.json"
+PUBLISH_LATEST = "latest.html"
 
+def load_days(token: str, owner: str, repo: str, branch: str) -> List[Dict[str, Any]]:
+    txt = github_get_file_text(owner, repo, DATA_PATH, token, branch=branch)
+    if not txt:
+        return []
+    try:
+        data = json.loads(txt)
+        return data if isinstance(data, list) else []
+    except json.JSONDecodeError:
+        return []
+
+def save_days(days: List[Dict[str, Any]], token: str, owner: str, repo: str, branch: str) -> None:
+    b = json.dumps(days, ensure_ascii=False, indent=2).encode("utf-8")
+    github_put_file(
+        owner=owner, repo=repo, path=DATA_PATH,
+        content_bytes=b,
+        message=f"Update {DATA_PATH} ({dt.datetime.now().isoformat(timespec='seconds')})",
+        token=token, branch=branch
+    )
+
+def render_index_html(days: List[Dict[str, Any]]) -> str:
+    """
+    Simple list page (optional). Create templates/index.html if you want nicer styling.
+    """
+    items = []
+    for d in sorted(days, key=lambda x: x.get("date",""), reverse=True):
+        date = d.get("date","")
+        title = d.get("title","結果速報")
+        items.append(f'<li><a href="archive/{date}.html">{date} — {title}</a></li>')
+    return f"""<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>結果一覧</title></head>
+<body><h1>結果一覧</h1><ul>{"".join(items)}</ul></body></html>"""
+
+
+# ============================================================
+# 5) FASTAPI APP
+# ============================================================
 app = FastAPI()
 
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")  # if empty => no password check
 GH_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GH_OWNER = os.environ.get("GITHUB_OWNER", "wjboo")
 GH_REPO = os.environ.get("GITHUB_REPO", "mail-magazine")
 GH_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
-PUBLISH_PATH = os.environ.get("PUBLISH_PATH", "latest.html")
 
 @app.get("/health")
 def health():
@@ -217,7 +274,7 @@ def admin():
   <title>Publish Results</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;line-height:1.4;}
-    textarea{width:100%;height:320px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;}
+    textarea{width:100%;height:360px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;}
     input,button{font-size:16px;padding:8px 10px;}
     .row{margin:12px 0;}
     .hint{color:#444;font-size:13px;}
@@ -227,8 +284,8 @@ def admin():
   <h1>Publish Results</h1>
   <form method="post" action="/publish">
     <div class="row">
-      <label>Password</label><br/>
-      <input type="password" name="password" required />
+      <label>Password (optional)</label><br/>
+      <input type="password" name="password" />
     </div>
     <div class="row">
       <label>Title (optional)</label><br/>
@@ -236,11 +293,11 @@ def admin():
     </div>
     <div class="row">
       <label>Results text</label><br/>
-      <textarea name="raw" required placeholder="Paste the results here..."></textarea>
-      <div class="hint">Format: ◆セクション名 → 選手名 → スコア 相手(所属)</div>
+      <textarea name="raw" required placeholder="Paste the bracket-style results here..."></textarea>
+      <div class="hint">Format: ◆種目 → 選手名 → [本戦/予選] → 複数行(1R bye / 2R ...)</div>
     </div>
     <div class="row">
-      <button type="submit">Publish to GitHub Pages</button>
+      <button type="submit">Publish</button>
     </div>
   </form>
 </body>
@@ -248,47 +305,70 @@ def admin():
 """
 
 @app.post("/publish")
-def publish(raw: str = Form(...), password: str = Form(...), title: str = Form("")):
+def publish(raw: str = Form(...), password: str = Form(""), title: str = Form("")):
+    # password behavior:
+    # - if ADMIN_PASSWORD is empty, anyone can publish
+    # - if set, the user must input it
     if ADMIN_PASSWORD and password != ADMIN_PASSWORD:
         return PlainTextResponse("Unauthorized", status_code=401)
 
     if not GH_TOKEN:
         return PlainTextResponse("Missing GITHUB_TOKEN env var", status_code=500)
 
-    sections = parse_results(raw)
+    today = dt.date.today().isoformat()
+    sections = parse_bracket(raw)
     if not sections:
-        return PlainTextResponse("Parsed 0 sections. Check input format.", status_code=400)
+        return PlainTextResponse("Parsed 0 sections. Check your pasted format.", status_code=400)
 
-    html = render_latest_html(
+    page_title = title.strip() or "結果速報"
+
+    # 1) Append today to JSON log (or replace if same date already exists)
+    days = load_days(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
+    days = [d for d in days if d.get("date") != today]
+    days.append({"date": today, "title": page_title, "sections": sections})
+    save_days(days, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
+
+    # 2) Render today HTML from template
+    html = render_bracket_html(
         sections=sections,
-        title=title.strip() or "結果速報",
-        updated_date=dt.date.today().strftime("%Y-%m-%d")
+        title=page_title,
+        updated_date=today
     ).encode("utf-8")
 
-    # Publish latest.html
+    # 3) Publish latest.html + archive copy
     github_put_file(
-        owner=GH_OWNER,
-        repo=GH_REPO,
-        path=PUBLISH_PATH,
+        owner=GH_OWNER, repo=GH_REPO, path=PUBLISH_LATEST,
         content_bytes=html,
-        message=f"Update {PUBLISH_PATH} ({dt.datetime.now().isoformat(timespec='seconds')})",
-        token=GH_TOKEN,
-        branch=GH_BRANCH,
+        message=f"Update {PUBLISH_LATEST} ({dt.datetime.now().isoformat(timespec='seconds')})",
+        token=GH_TOKEN, branch=GH_BRANCH
+    )
+    archive_path = f"archive/{today}.html"
+    github_put_file(
+        owner=GH_OWNER, repo=GH_REPO, path=archive_path,
+        content_bytes=html,
+        message=f"Archive results ({today})",
+        token=GH_TOKEN, branch=GH_BRANCH
     )
 
-    # Optional archive copy
-    archive_path = f"archive/{dt.date.today().isoformat()}.html"
+    # 4) Optional: publish an index page listing all days
+    index_html = render_index_html(days).encode("utf-8")
     github_put_file(
-        owner=GH_OWNER,
-        repo=GH_REPO,
-        path=archive_path,
-        content_bytes=html,
-        message=f"Archive results ({dt.date.today().isoformat()})",
-        token=GH_TOKEN,
-        branch=GH_BRANCH,
+        owner=GH_OWNER, repo=GH_REPO, path="index.html",
+        content_bytes=index_html,
+        message=f"Update index.html ({dt.datetime.now().isoformat(timespec='seconds')})",
+        token=GH_TOKEN, branch=GH_BRANCH
     )
 
     return HTMLResponse(
-        f"""<p>Published: <code>{PUBLISH_PATH}</code> and <code>{archive_path}</code></p>
-            <p>Wix embed URL: <code>https://{GH_OWNER}.github.io/{GH_REPO}/{PUBLISH_PATH}</code></p>"""
+        f"""
+        <p>Published:</p>
+        <ul>
+          <li><code>{PUBLISH_LATEST}</code></li>
+          <li><code>{archive_path}</code></li>
+          <li><code>{DATA_PATH}</code></li>
+          <li><code>index.html</code></li>
+        </ul>
+        <p>Latest URL: <code>https://{GH_OWNER}.github.io/{GH_REPO}/{PUBLISH_LATEST}</code></p>
+        <p>Archive URL: <code>https://{GH_OWNER}.github.io/{GH_REPO}/{archive_path}</code></p>
+        """
     )

@@ -4,33 +4,36 @@
     "title": "2025年室内大会",
     "sections": [
       {
-        "category": "男子シングルス",
-        "entries": [
+        "category": "男子シングルス本戦1R",
+        "players": [
           {
             "name": "眞田将吾",
-            "round": "1R",
-            "score": "4-6/6(4)-7",
-            "opponent": "杉本一樹",
-            "opponent_affiliation": "明治大学"
-          },
-          {
-            "name": "ジョーンズ怜音",
-            "round": "1R",
-            "score": "6-3/6-2",
-            "opponent": "今西珀人",
-            "opponent_affiliation": "関西大学"
+            "blocks": [
+              {
+                "stage": "",
+                "lines": [
+                  "4-6/6(4)-7 杉本一樹(明治大学)",
+                  "ジョーンズ怜音",
+                  "6-3/6-2 今西珀人(関西大学)"
+                ]
+              }
+            ]
           }
         ]
       },
       {
-        "category": "女子ダブルス",
-        "entries": [
+        "category": "女子ダブルス予選F",
+        "players": [
           {
             "name": "中島玲亜・渡邊多笑",
-            "round": "F",
-            "score": "6-4/6-2",
-            "opponent": "瀬戸根愛玲・杉村舞夏",
-            "opponent_affiliation": "鹿屋体育大学"
+            "blocks": [
+              {
+                "stage": "",
+                "lines": [
+                  "6-4/6-2 瀬戸根愛玲・杉村舞夏(鹿屋体育大学)"
+                ]
+              }
+            ]
           }
         ]
       }

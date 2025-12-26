@@ -97,6 +97,10 @@
 <body>
   <div class="results">
     <div class="results-shell">
+
+      {# TOP EMAIL HEADER BLOCK #}
+      {% include "email_header.html" %}
+
       <div class="meta">{{ title }} / 更新: {{ updated_date }}</div>
 
       {# Split sections into two columns for desktop; alternating distribution #}

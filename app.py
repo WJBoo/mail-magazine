@@ -5,6 +5,11 @@ import base64
 import datetime as dt
 from typing import List, Dict, Any, Optional
 
+from fastapi import FastAPI, Form
+from fastapi.responses import HTMLResponse, PlainTextResponse
+# ADD:
+from typing import List, Dict, Any, Optional
+
 
 import requests
 from fastapi import FastAPI, Form
@@ -159,13 +164,21 @@ env = Environment(
 def render_bracket_html(
     sections: List[Dict[str, Any]],
     title: str = "結果速報",
-    updated_date: Optional[str] = None
+    updated_date: Optional[str] = None,
+    tournament_name: str = "",
+    venue_name: str = "",
+    tomorrow_matches: Optional[List[Dict[str, str]]] = None,
+    special_message: str = "",
 ) -> str:
-    tmpl = env.get_template("bracket_template.html")  # <-- use the template I gave you
+    tmpl = env.get_template("bracket_template.html")
     return tmpl.render(
         title=title,
         updated_date=updated_date or dt.date.today().isoformat(),
         sections=sections,
+        tournament_name=tournament_name,
+        venue_name=venue_name,
+        tomorrow_matches=tomorrow_matches or [],
+        special_message=special_message,
     )
 
 
@@ -334,6 +347,43 @@ def admin():
       <input type="text" name="title" placeholder="例：2025年 ○○大会 結果速報" style="width:100%;" />
     </div>
     <div class="row">
+      <label>大会名</label><br/>
+      <input type="text" name="tournament_name"
+             placeholder="例：2025年室内大会"
+             style="width:100%;" />
+    </div>
+    
+    <div class="row">
+      <label>会場名</label><br/>
+      <input type="text" name="venue_name"
+             placeholder="例：慶應義塾大学 日吉キャンパス"
+             style="width:100%;" />
+    </div>
+    
+    <div class="row">
+      <label>明日の予定（最大2試合）</label><br/>
+    
+      <input type="text" name="p1_name"  placeholder="名前" style="width:23%;" />
+      <input type="text" name="p1_opp"   placeholder="相手" style="width:23%;" />
+      <input type="text" name="p1_time"  placeholder="時間" style="width:23%;" />
+      <input type="text" name="p1_court" placeholder="コート番号" style="width:23%;" />
+    
+      <div style="height:8px;"></div>
+    
+      <input type="text" name="p2_name"  placeholder="名前" style="width:23%;" />
+      <input type="text" name="p2_opp"   placeholder="相手" style="width:23%;" />
+      <input type="text" name="p2_time"  placeholder="時間" style="width:23%;" />
+      <input type="text" name="p2_court" placeholder="コート番号" style="width:23%;" />
+    </div>
+    
+    <div class="row">
+      <label>特別メッセージ</label><br/>
+      <textarea name="special_message"
+                placeholder="例：応援よろしくお願いします！"
+                style="width:100%;height:80px;"></textarea>
+    </div>
+
+    <div class="row">
       <label>Results text</label><br/>
       <textarea name="raw" required placeholder="Paste the bracket-style results here..."></textarea>
       <div class="hint">Format: ◆種目 → 選手名 → [本戦/予選] → 複数行(1R bye / 2R ...)</div>
@@ -347,7 +397,27 @@ def admin():
 """
 
 @app.post("/publish")
-def publish(raw: str = Form(...), password: str = Form(""), title: str = Form("")):
+def publish(
+    raw: str = Form(...),
+    password: str = Form(""),
+    title: str = Form(""),
+
+    # NEW user inputs:
+    tournament_name: str = Form(""),
+    venue_name: str = Form(""),
+    special_message: str = Form(""),
+
+    # simplest “2 matches” version:
+    p1_name: str = Form(""),
+    p1_opp: str = Form(""),
+    p1_time: str = Form(""),
+    p1_court: str = Form(""),
+
+    p2_name: str = Form(""),
+    p2_opp: str = Form(""),
+    p2_time: str = Form(""),
+    p2_court: str = Form(""),
+):
     if ADMIN_PASSWORD and password != ADMIN_PASSWORD:
         return PlainTextResponse("Unauthorized", status_code=401)
 
@@ -357,37 +427,38 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
     today = dt.date.today().isoformat()
     page_title = title.strip() or "結果速報"
 
-    # 1) Parse today's paste into "events"
-    # IMPORTANT: use the parser matching your input format:
-    events = events = parse_daily_results(raw)   # <-- from the earlier message
-    # OR, if you paste the bracket format with [本戦]/[予選]:
-    # events = parse_bracket(raw)
-
+    events = parse_daily_results(raw)
     if not events:
         return PlainTextResponse("Parsed 0 sections. Check your pasted format.", status_code=400)
 
-    # 2) Load cumulative state, merge today's events, save back
     state = load_state(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
     state["title"] = page_title
     state["last_updated"] = today
     state = merge_into_state(state, events)
     save_state(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
 
-    # 3) Render cumulative results (NOT just today's)
+    tomorrow_matches = []
+    if p1_name and p1_opp and p1_time and p1_court:
+        tomorrow_matches.append({"name": p1_name, "opponent": p1_opp, "time": p1_time, "court": p1_court})
+    if p2_name and p2_opp and p2_time and p2_court:
+        tomorrow_matches.append({"name": p2_name, "opponent": p2_opp, "time": p2_time, "court": p2_court})
+
     html = render_bracket_html(
         sections=state["sections"],
         title=state["title"],
         updated_date=state["last_updated"],
+        tournament_name=tournament_name.strip() or page_title,
+        venue_name=venue_name.strip(),
+        tomorrow_matches=tomorrow_matches,
+        special_message=special_message.strip(),
     ).encode("utf-8")
 
-    # 4) Publish latest + archive snapshot
     github_put_file(
         owner=GH_OWNER, repo=GH_REPO, path=PUBLISH_LATEST,
         content_bytes=html,
         message=f"Update {PUBLISH_LATEST} ({dt.datetime.now().isoformat(timespec='seconds')})",
         token=GH_TOKEN, branch=GH_BRANCH
     )
-    
 
     archive_path = f"archive/{today}.html"
     github_put_file(
@@ -396,12 +467,12 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
         message=f"Archive cumulative results ({today})",
         token=GH_TOKEN, branch=GH_BRANCH
     )
-    send_gmail_html(
-    to_email="wboo@college.harvard.edu",
-    subject=f"{page_title}（{today}）",
-    html=html.decode("utf-8")
-    )
 
+    send_gmail_html(
+        to_email="wboo@college.harvard.edu",
+        subject=f"{page_title}（{today}）",
+        html=html.decode("utf-8")
+    )
 
     return HTMLResponse(
         f"""
@@ -414,4 +485,6 @@ def publish(raw: str = Form(...), password: str = Form(""), title: str = Form(""
         <p>Latest URL: <code>https://{GH_OWNER}.github.io/{GH_REPO}/{PUBLISH_LATEST}</code></p>
         """
     )
+
+
 

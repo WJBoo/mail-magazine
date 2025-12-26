@@ -107,63 +107,71 @@
       {% set left = sections[0::2] %}
       {% set right = sections[1::2] %}
 
-      <div class="cols">
-        <!-- LEFT COLUMN -->
-        <section class="col">
-          {% for s in left %}
-            <h2 class="section-title">◆{{ s.category }}</h2>
+      {% set left = sections[0::2] %}
+{% set right = sections[1::2] %}
 
-            {# s.players is a list of player blocks in this section #}
-            {% for p in s.players %}
-              <div class="player-block">
-                <div class="player-name">{{ p.name }}</div>
-            
-                {% for b in p.blocks %}
-                  {% if b.stage %}
-                    <div class="stage">[{{ b.stage }}]</div>
-                  {% endif %}
-            
-                  {% for ln in b.lines %}
-                    <div class="line">{{ ln }}</div>
-                  {% endfor %}
-            
-                  {# optional small gap between [予選] and [本戦] blocks #}
-                  {% if not loop.last %}
-                    <div style="height:10px;"></div>
-                  {% endif %}
-                {% endfor %}
-              </div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
+  <tr>
+    <!-- LEFT -->
+    <td valign="top" width="50%" style="padding-right:55px;">
+      {% for s in left %}
+        <h2 class="section-title" style="margin:0 0 18px 0;">◆{{ s.category }}</h2>
+
+        {% for p in s.players %}
+          <div class="player-block" style="margin:0 0 26px 0;">
+            <div class="player-name" style="margin:0 0 4px 0;">{{ p.name }}</div>
+
+            {% for b in p.blocks %}
+              {% if b.stage %}
+                <div class="stage" style="margin:0 0 6px 0;">[{{ b.stage }}]</div>
+              {% endif %}
+
+              {% for ln in b.lines %}
+                <div class="line" style="display:block;margin:2px 0;">{{ ln }}</div>
+              {% endfor %}
+
+              {% if not loop.last %}
+                <div style="height:10px;line-height:10px;font-size:10px;">&nbsp;</div>
+              {% endif %}
             {% endfor %}
+          </div>
+        {% endfor %}
 
+        <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+      {% endfor %}
+    </td>
 
-            <div class="block-gap"></div>
-          {% endfor %}
-        </section>
+    <!-- RIGHT -->
+    <td valign="top" width="50%" style="padding-left:55px;">
+      {% for s in right %}
+        <h2 class="section-title" style="margin:0 0 18px 0;">◆{{ s.category }}</h2>
 
-        <!-- RIGHT COLUMN -->
-        <section class="col">
-          {% for s in right %}
-            <h2 class="section-title">◆{{ s.category }}</h2>
+        {% for p in s.players %}
+          <div class="player-block" style="margin:0 0 26px 0;">
+            <div class="player-name" style="margin:0 0 4px 0;">{{ p.name }}</div>
 
-            {% for p in s.players %}
-              <div class="player-block">
-                <div class="player-name">{{ p.name }}</div>
-            
-                {% for b in p.blocks %}
-                  {% if b.stage %}
-                    <div class="stage">[{{ b.stage }}]</div>
-                  {% endif %}
-            
-                  {% for ln in b.lines %}
-                    <div class="line">{{ ln }}</div>
-                  {% endfor %}
-            
-                  {# optional small gap between [予選] and [本戦] blocks #}
-                  {% if not loop.last %}
-                    <div style="height:10px;"></div>
-                  {% endif %}
-                {% endfor %}
-              </div>
+            {% for b in p.blocks %}
+              {% if b.stage %}
+                <div class="stage" style="margin:0 0 6px 0;">[{{ b.stage }}]</div>
+              {% endif %}
+
+              {% for ln in b.lines %}
+                <div class="line" style="display:block;margin:2px 0;">{{ ln }}</div>
+              {% endfor %}
+
+              {% if not loop.last %}
+                <div style="height:10px;line-height:10px;font-size:10px;">&nbsp;</div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+        <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+      {% endfor %}
+    </td>
+  </tr>
+</table>
+
             {% endfor %}
 
 

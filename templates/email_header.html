@@ -7,11 +7,14 @@
   {% if tomorrow_matches and tomorrow_matches|length > 0 %}
     <div class="matches">
       {% for m in tomorrow_matches %}
-        <div class="match">
-          <div class="name">{{ m.name }}</div>
-          <div class="vs">対{{ m.opponent }}（{{ m.time }}、{{ m.court }}番コート）</div>
-        </div>
-      {% endfor %}
+      <div style="margin:12px 0 2px 0;font-size:16px;font-weight:600;">
+        {{ m.name }}（{{ m.event }}）
+      </div>
+      <div style="margin:0 0 10px 0;font-size:16px;">
+        対{{ m.opponent }}（{{ m.time }}、{{ m.court }}）
+      </div>
+    {% endfor %}
+
     </div>
   {% endif %}
 

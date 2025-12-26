@@ -1,0 +1,46 @@
+<!-- templates/email_header.html (Jinja partial) -->
+<div class="email-top">
+  <p class="lead">
+    {{ tournament_name }}の結果報告をお送りいたします。明日の予定は以下の通りです。試合は{{ venue_name }}で行われます。
+  </p>
+
+  {% if tomorrow_matches and tomorrow_matches|length > 0 %}
+    <div class="matches">
+      {% for m in tomorrow_matches %}
+        <div class="match">
+          <div class="name">{{ m.name }}</div>
+          <div class="vs">対{{ m.opponent }}（{{ m.time }}、{{ m.court }}番コート）</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if special_message %}
+    <div class="special">
+      {{ special_message }}
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  .email-top{ margin:0 0 22px 0; }
+  .email-top .lead{
+    margin:0 0 14px 0;
+    font-size:16px;
+    line-height:1.8;
+    opacity:.95;
+  }
+  .email-top .matches{ margin:0 0 14px 0; }
+  .email-top .match{ margin:10px 0 0 0; }
+  .email-top .name{ font-size:17px; font-weight:600 mentioned; }
+  .email-top .vs{ font-size:16px; margin:2px 0 0 0; opacity:.95; }
+  .email-top .special{
+    margin:14px 0 0 0;
+    padding:12px 14px;
+    border-radius:10px;
+    background:rgba(255,255,255,.08);
+    font-size:15px;
+    line-height:1.75;
+    white-space:pre-wrap;
+  }
+</style>

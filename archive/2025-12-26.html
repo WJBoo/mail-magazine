@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>結果速報</title>
+  <style>
+    *{ box-sizing:border-box; }
+    html, body{ margin:0; padding:0; width:100%; }
+    body{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+
+    .results{
+      background:#050b3d;
+      color:#fff;
+
+      font-family:
+        "Avenir Light","Avenir","Avenir Next","Helvetica Neue",
+        "Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+
+      line-height:1.75;
+      display:flex;
+      justify-content:center;
+      padding:28px 0 70px 0;
+      width:100%;
+    }
+
+    .results-shell{
+      width:100%;
+      max-width:1100px;
+      margin-left:auto;
+      margin-right:auto;
+      padding:0 56px;
+    }
+
+    .meta{
+      opacity:.9;
+      font-size:14px;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    .cols{
+      display:flex;
+      gap:110px;
+      align-items:flex-start;
+      justify-content:center;
+    }
+
+    .col{ flex:0 1 460px; min-width:0; }
+
+    /* Section heading like: ◆男子シングルス */
+    .section-title{
+      font-size:20px;
+      font-weight:600;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    /* A “player block” is: name, [stage], then round lines */
+    .player-block{ margin:0 0 26px 0; }
+
+    .player-name{
+      font-size:18px;
+      font-weight:500;
+      margin:0 0 4px 0;
+      letter-spacing:.01em;
+    }
+
+    .stage{
+      font-size:16px;
+      opacity:.95;
+      margin:0 0 6px 0;
+    }
+
+    /* Each result line like: 2R 6-2/3-6/11-9 大下翔希(近畿大学) */
+    .line{
+      font-size:16px;
+      margin:2px 0;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .block-gap{ height:18px; }
+
+    @media (max-width: 700px){
+      .results-shell{ padding:0 20px; max-width:520px; }
+      .cols{ display:block; }
+      .col{ width:100%; max-width:520px; margin:0 auto 26px auto; }
+
+      .section-title{ font-size:18px; }
+      .player-name{ font-size:17px; }
+      .stage, .line{ font-size:15px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="results">
+    <div class="results-shell">
+
+      
+      <!-- templates/email_header.html (Jinja partial) -->
+<div class="email-top">
+  <p class="lead">
+    2025年室内大会の結果報告をお送りいたします。明日の予定は以下の通りです。試合は有明タニスの森で行われます。
+  </p>
+
+  
+    <div class="matches">
+      
+        <div class="match">
+          <div class="name">ジョーンズ怜音</div>
+          <div class="vs">対船橋我空（17:00、6番コート）</div>
+        </div>
+      
+    </div>
+  
+
+  
+    <div class="special">
+      テストメッセージです。
+    </div>
+  
+</div>
+
+<style>
+  .email-top{ margin:0 0 22px 0; }
+  .email-top .lead{
+    margin:0 0 14px 0;
+    font-size:16px;
+    line-height:1.8;
+    opacity:.95;
+  }
+  .email-top .matches{ margin:0 0 14px 0; }
+  .email-top .match{ margin:10px 0 0 0; }
+  .email-top .name{ font-size:17px; font-weight:600 mentioned; }
+  .email-top .vs{ font-size:16px; margin:2px 0 0 0; opacity:.95; }
+  .email-top .special{
+    margin:14px 0 0 0;
+    padding:12px 14px;
+    border-radius:10px;
+    background:rgba(255,255,255,.08);
+    font-size:15px;
+    line-height:1.75;
+    white-space:pre-wrap;
+  }
+</style>
+
+      <div class="meta">結果速報 / 更新: 2025-12-26</div>
+
+      
+      
+      
+
+      <div class="cols">
+        <!-- LEFT COLUMN -->
+        <section class="col">
+          
+            <h2 class="section-title">◆男子シングルス</h2>
+
+            
+            
+              <div class="player-block">
+                <div class="player-name">眞田将吾</div>
+            
+                
+                  
+                    <div class="stage">[本戦]</div>
+                  
+            
+                  
+                    <div class="line">1R 4-6/6(4)-7 杉本一樹(明治大学)</div>
+                  
+            
+                  
+                  
+                
+              </div>
+            
+              <div class="player-block">
+                <div class="player-name">ジョーンズ怜音</div>
+            
+                
+                  
+                    <div class="stage">[本戦]</div>
+                  
+            
+                  
+                    <div class="line">1R 6-3/6-2 今西珀人(関西大学)</div>
+                  
+                    <div class="line">2R 6-3/6-2 南拓海(関西大学)</div>
+                  
+                    <div class="line">3R 6-3/6-2 南拓海(関西大学)</div>
+                  
+                    <div class="line">4R 6-3/6-2 大沼大輝(関西大学)</div>
+                  
+                    <div class="line">4R 6-3/6-2 南拓海(関西大学)</div>
+                  
+            
+                  
+                  
+                
+              </div>
+            
+
+
+            <div class="block-gap"></div>
+          
+            <h2 class="section-title">◆女子シングルス</h2>
+
+            
+            
+              <div class="player-block">
+                <div class="player-name">中島玲亜</div>
+            
+                
+                  
+                    <div class="stage">[本戦]</div>
+                  
+            
+                  
+                    <div class="line">SF 6-0/6-0 瀬戸根愛玲(明治大学)</div>
+                  
+                    <div class="line">F 6-0/6-0 上智よう(明治大学)</div>
+                  
+            
+                  
+                  
+                
+              </div>
+            
+
+
+            <div class="block-gap"></div>
+          
+        </section>
+
+        <!-- RIGHT COLUMN -->
+        <section class="col">
+          
+            <h2 class="section-title">◆男子ダブルス</h2>
+
+            
+              <div class="player-block">
+                <div class="player-name">大塚・福田</div>
+            
+                
+                  
+                    <div class="stage">[本戦]</div>
+                  
+            
+                  
+                    <div class="line">2R 7-6(3)/6-3 天谷俊介・三木捷照(駒澤大学)</div>
+                  
+                    <div class="line">3R 7-6(3)/6-3 後藤ひろき・三原からす(駒澤大学)</div>
+                  
+                    <div class="line">4R 7-6(3)/6-3 後藤ひろき・三原からす(駒澤大学)</div>
+                  
+                    <div class="line">5R 7-6(3)/6-3 後藤ひろき・三原からす(駒澤大学)</div>
+                  
+            
+                  
+                  
+                
+              </div>
+            
+
+
+            <div class="block-gap"></div>
+          
+            <h2 class="section-title">◆女子ダブルス</h2>
+
+            
+              <div class="player-block">
+                <div class="player-name">中島玲亜・渡邊多笑</div>
+            
+                
+                  
+                    <div class="stage">[予選]</div>
+                  
+            
+                  
+                    <div class="line">F 6-4/6-2 瀬戸根愛玲・杉村舞夏(鹿屋体育大学)</div>
+                  
+            
+                  
+                  
+                    <div style="height:10px;"></div>
+                  
+                
+                  
+                    <div class="stage">[本戦]</div>
+                  
+            
+                  
+                    <div class="line">1R 6-4/6-2 鈴木大翔・船橋我空(鹿屋体育大学)</div>
+                  
+                    <div class="line">2R 6-4/6-2 鈴木大翔・船橋我空(鹿屋体育大学)</div>
+                  
+            
+                  
+                  
+                
+              </div>
+            
+
+
+            <div class="block-gap"></div>
+          
+        </section>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

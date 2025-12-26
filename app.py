@@ -150,6 +150,51 @@ def parse_daily_results(text: str) -> List[Dict[str, Any]]:
 
     return sections
 
+def parse_tomorrow_text(tomorrow_text: str) -> List[Dict[str, str]]:
+    """
+    Accepts flexible input like:
+      山田太郎（男子シングルス）
+      対 佐藤次郎（9:00、3番コート）
+
+      鈴木花子（女子シングルス）
+      対 田中愛（10:30、1番コート）
+
+    Returns:
+      [{"name":"山田太郎", "event":"男子シングルス", "opponent":"佐藤次郎", "time":"9:00", "court":"3番コート"}, ...]
+    """
+    t = (tomorrow_text or "").strip()
+    if not t:
+        return []
+
+    # split into blocks by blank lines
+    blocks = re.split(r"\n\s*\n+", t)
+    out: List[Dict[str, str]] = []
+
+    # name line: "山田太郎（男子シングルス）" or "山田太郎 (男子シングルス)"
+    name_re = re.compile(r"^(?P<name>.+?)\s*[（(]\s*(?P<event>.+?)\s*[)）]\s*$")
+    # match line: "対 佐藤（9:00、3番コート）"
+    vs_re = re.compile(r"^対\s*(?P<opp>.+?)\s*[（(]\s*(?P<time>[^、,]+)\s*[、,]\s*(?P<court>.+?)\s*[)）]\s*$")
+
+    for b in blocks:
+        lines = [ln.strip() for ln in b.splitlines() if ln.strip()]
+        if len(lines) < 2:
+            continue
+
+        m1 = name_re.match(lines[0])
+        m2 = vs_re.match(lines[1])
+
+        if not (m1 and m2):
+            continue
+
+        out.append({
+            "name": m1.group("name"),
+            "event": m1.group("event"),
+            "opponent": m2.group("opp"),
+            "time": m2.group("time"),
+            "court": m2.group("court"),
+        })
+
+    return out
 
 
 
@@ -361,20 +406,18 @@ def admin():
     </div>
     
     <div class="row">
-      <label>明日の予定（最大2試合）</label><br/>
+      <label>明日の予定（1行=1試合）</label><br/>
+      <textarea name="tomorrow_text"
+                placeholder="例：
+    山田太郎（男子シングルス）
+    対 佐藤次郎（9:00、3番コート）
     
-      <input type="text" name="p1_name"  placeholder="名前" style="width:23%;" />
-      <input type="text" name="p1_opp"   placeholder="相手" style="width:23%;" />
-      <input type="text" name="p1_time"  placeholder="時間" style="width:23%;" />
-      <input type="text" name="p1_court" placeholder="コート番号" style="width:23%;" />
-    
-      <div style="height:8px;"></div>
-    
-      <input type="text" name="p2_name"  placeholder="名前" style="width:23%;" />
-      <input type="text" name="p2_opp"   placeholder="相手" style="width:23%;" />
-      <input type="text" name="p2_time"  placeholder="時間" style="width:23%;" />
-      <input type="text" name="p2_court" placeholder="コート番号" style="width:23%;" />
+    鈴木花子（女子シングルス）
+    対 田中愛（10:30、1番コート）"
+                style="width:100%;height:140px;"></textarea>
+      <div class="hint">空行区切りでもOK。行数の制限なし。</div>
     </div>
+
     
     <div class="row">
       <label>特別メッセージ</label><br/>
@@ -408,15 +451,8 @@ def publish(
     special_message: str = Form(""),
 
     # simplest “2 matches” version:
-    p1_name: str = Form(""),
-    p1_opp: str = Form(""),
-    p1_time: str = Form(""),
-    p1_court: str = Form(""),
+    tomorrow_text: str = Form(""),
 
-    p2_name: str = Form(""),
-    p2_opp: str = Form(""),
-    p2_time: str = Form(""),
-    p2_court: str = Form(""),
 ):
     if ADMIN_PASSWORD and password != ADMIN_PASSWORD:
         return PlainTextResponse("Unauthorized", status_code=401)
@@ -437,11 +473,8 @@ def publish(
     state = merge_into_state(state, events)
     save_state(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
 
-    tomorrow_matches = []
-    if p1_name and p1_opp and p1_time and p1_court:
-        tomorrow_matches.append({"name": p1_name, "opponent": p1_opp, "time": p1_time, "court": p1_court})
-    if p2_name and p2_opp and p2_time and p2_court:
-        tomorrow_matches.append({"name": p2_name, "opponent": p2_opp, "time": p2_time, "court": p2_court})
+    tomorrow_matches = parse_tomorrow_text(tomorrow_text)
+
 
     html = render_bracket_html(
         sections=state["sections"],

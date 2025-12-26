@@ -97,7 +97,56 @@
 <body>
   <div class="results">
     <div class="results-shell">
-      <div class="meta">結果速報 / 更新: 2025-12-25</div>
+
+      
+      <!-- templates/email_header.html (Jinja partial) -->
+<div class="email-top">
+  <p class="lead">
+    2025年室内大会の結果報告をお送りいたします。明日の予定は以下の通りです。試合は有明タニスの森で行われます。
+  </p>
+
+  
+    <div class="matches">
+      
+        <div class="match">
+          <div class="name">ジョーンズ怜音</div>
+          <div class="vs">対船橋我空（17:00、6番コート）</div>
+        </div>
+      
+    </div>
+  
+
+  
+    <div class="special">
+      テストメッセージです。
+    </div>
+  
+</div>
+
+<style>
+  .email-top{ margin:0 0 22px 0; }
+  .email-top .lead{
+    margin:0 0 14px 0;
+    font-size:16px;
+    line-height:1.8;
+    opacity:.95;
+  }
+  .email-top .matches{ margin:0 0 14px 0; }
+  .email-top .match{ margin:10px 0 0 0; }
+  .email-top .name{ font-size:17px; font-weight:600 mentioned; }
+  .email-top .vs{ font-size:16px; margin:2px 0 0 0; opacity:.95; }
+  .email-top .special{
+    margin:14px 0 0 0;
+    padding:12px 14px;
+    border-radius:10px;
+    background:rgba(255,255,255,.08);
+    font-size:15px;
+    line-height:1.75;
+    white-space:pre-wrap;
+  }
+</style>
+
+      <div class="meta">結果速報 / 更新: 2025-12-26</div>
 
       
       
@@ -144,6 +193,8 @@
                     <div class="line">3R 6-3/6-2 南拓海(関西大学)</div>
                   
                     <div class="line">4R 6-3/6-2 大沼大輝(関西大学)</div>
+                  
+                    <div class="line">4R 6-3/6-2 南拓海(関西大学)</div>
                   
             
                   
@@ -205,6 +256,8 @@
                   
                     <div class="line">4R 7-6(3)/6-3 後藤ひろき・三原からす(駒澤大学)</div>
                   
+                    <div class="line">5R 7-6(3)/6-3 後藤ひろき・三原からす(駒澤大学)</div>
+                  
             
                   
                   
@@ -241,6 +294,8 @@
             
                   
                     <div class="line">1R 6-4/6-2 鈴木大翔・船橋我空(鹿屋体育大学)</div>
+                  
+                    <div class="line">2R 6-4/6-2 鈴木大翔・船橋我空(鹿屋体育大学)</div>
                   
             
                   

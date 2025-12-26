@@ -18,6 +18,10 @@
     </div>
   {% endif %}
 
+  {% if tomorrow_matches and special_message %}
+    <div style="height:20px;"></div>
+  {% endif %}
+
   {% if special_message %}
     <div class="special">
       {{ special_message }}

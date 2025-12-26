@@ -1,8 +1,19 @@
 <!-- templates/email_header.html (Jinja partial) -->
 <div class="email-top">
   <p class="lead">
-    {{ tournament_name }}の結果報告をお送りいたします。明日の予定は以下の通りです。試合は{{ venue_name }}で行われます。
+    {{ tournament_name }}の結果報告をお送りいたします。
+    本日出場した選手は
+    {% for m in tomorrow_matches %}
+      {{ m.name }}{% if not loop.last %}、{% endif %}
+    {% endfor %}
+    です。
   </p>
+  
+  {% if venue_name %}
+  <p class="lead">
+    明日の予定は以下の通りです。試合は{{ venue_name }}で行われます。
+  </p>
+  {% endif %}
 
   {% if tomorrow_matches and tomorrow_matches|length > 0 %}
     <div class="matches">

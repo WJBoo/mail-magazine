@@ -101,6 +101,17 @@
       {# TOP EMAIL HEADER BLOCK #}
       {% include "email_header.html" %}
 
+      <div style="height:24px;"></div>
+
+      <!-- Horizontal line -->
+      <div style="
+        width:100%;
+        height:1px;
+        background:#ffffff;
+        opacity:0.25;
+        margin:0 0 24px 0;
+      "></div>
+
       <div class="meta">{{ title }} / 更新: {{ updated_date }}</div>
 
       {# Split sections into two columns for desktop; alternating distribution #}
@@ -171,8 +182,6 @@
     </td>
   </tr>
 </table>
-
-            {% endfor %}
 
 
             <div class="block-gap"></div>

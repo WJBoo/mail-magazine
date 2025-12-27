@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Preview & Confirm</title>
+<style>
+textarea{width:100%;min-height:160px;font-family:monospace;}
+.preview{border:1px solid #ccc;padding:16px;margin-bottom:24px;}
+.cols{display:flex;gap:24px;}
+.col{flex:1;}
+button{font-size:16px;padding:8px 16px;margin-right:12px;}
+</style>
+</head>
+<body>
+
+<h1>送信プレビュー</h1>
+
+<h2>Email Header</h2>
+<div class="preview">{{ header_html|safe }}</div>
+
+<textarea name="header_html">{{ header_html }}</textarea>
+
+<h2>本文</h2>
+<div class="cols">
+  <div class="col">
+    <h3>左カラム</h3>
+    <div class="preview">{{ left_html|safe }}</div>
+    <textarea name="left_html">{{ left_html }}</textarea>
+  </div>
+  <div class="col">
+    <h3>右カラム</h3>
+    <div class="preview">{{ right_html|safe }}</div>
+    <textarea name="right_html">{{ right_html }}</textarea>
+  </div>
+</div>
+
+<form method="post" action="/publish_final">
+  <input type="hidden" name="ctx" value='{{ ctx }}' />
+
+  <input type="hidden" name="header_html">
+  <input type="hidden" name="left_html">
+  <input type="hidden" name="right_html">
+
+  <button type="submit" onclick="fill()">✅ 確定して送信</button>
+</form>
+
+<script>
+function fill(){
+  document.querySelector('input[name="header_html"]').value =
+    document.querySelector('textarea[name="header_html"]').value;
+  document.querySelector('input[name="left_html"]').value =
+    document.querySelector('textarea[name="left_html"]').value;
+  document.querySelector('input[name="right_html"]').value =
+    document.querySelector('textarea[name="right_html"]').value;
+}
+</script>
+
+</body>
+</html>

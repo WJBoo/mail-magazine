@@ -196,6 +196,19 @@ def parse_tomorrow_text(tomorrow_text: str) -> List[Dict[str, str]]:
 
     return out
 
+def tomorrow_player_names(tomorrow_matches: List[Dict[str, str]]) -> List[str]:
+    """
+    Returns unique player names scheduled for tomorrow.
+    """
+    seen = set()
+    names = []
+    for m in tomorrow_matches:
+        name = m.get("name")
+        if name and name not in seen:
+            seen.add(name)
+            names.append(name)
+    return names
+
 
 
 # ============================================================
@@ -206,6 +219,7 @@ env = Environment(
     autoescape=select_autoescape(["html"])
 )
 
+
 def render_bracket_html(
     sections: List[Dict[str, Any]],
     title: str = "結果速報",
@@ -214,6 +228,7 @@ def render_bracket_html(
     venue_name: str = "",
     tomorrow_matches: Optional[List[Dict[str, str]]] = None,
     special_message: str = "",
+    tomorrow_names: Optional[List[str]] = None,   # ✅ ADD
 ) -> str:
     tmpl = env.get_template("bracket_template.html")
     return tmpl.render(
@@ -224,8 +239,8 @@ def render_bracket_html(
         venue_name=venue_name,
         tomorrow_matches=tomorrow_matches or [],
         special_message=special_message,
+        tomorrow_names=tomorrow_names or [],
     )
-
 
 # ============================================================
 # 3) GITHUB HELPERS (read + write files via Contents API)
@@ -474,6 +489,21 @@ def publish(
     save_state(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
 
     tomorrow_matches = parse_tomorrow_text(tomorrow_text)
+
+    tomorrow_matches = parse_tomorrow_text(tomorrow_text)
+    tomorrow_names = tomorrow_player_names(tomorrow_matches)
+
+    html = render_bracket_html(
+        sections=state["sections"],
+        title=state["title"],
+        updated_date=state["last_updated"],
+        tournament_name=tournament_name.strip() or page_title,
+        venue_name=venue_name.strip(),
+        tomorrow_matches=tomorrow_matches,
+        special_message=special_message.strip(),
+        tomorrow_names=tomorrow_names,   # ✅ ADD THIS
+    ).encode("utf-8")
+
 
 
     html = render_bracket_html(

@@ -489,7 +489,11 @@ def preview(
     ctx = dict(
         raw=raw,
         title=title.strip() or "結果速報",
-        tournament_name=tournament_name.strip() or title,
+    
+        # NEW
+        announcement_title=announcement_title.strip(),
+        tournament_link=tournament_link.strip(),
+    
         venue_name=venue_name.strip(),
         tomorrow_matches=tomorrow_matches,
         tomorrow_names=tomorrow_names,

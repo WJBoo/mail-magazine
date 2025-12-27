@@ -396,8 +396,8 @@ def admin():
   </style>
 </head>
 <body>
-  <h1>Publish Results</h1>
-  <form method="post" action="/publish">
+  <h1>Preview Results</h1>
+  <form method="post" action="/preview">
     <div class="row">
       <label>Password (optional)</label><br/>
       <input type="password" name="password" />
@@ -454,100 +454,107 @@ def admin():
 </html>
 """
 
-@app.post("/publish")
-def publish(
+@app.post("/preview", response_class=HTMLResponse)
+def preview(
     raw: str = Form(...),
     password: str = Form(""),
     title: str = Form(""),
-
-    # NEW user inputs:
     tournament_name: str = Form(""),
     venue_name: str = Form(""),
     special_message: str = Form(""),
-
-    # simplest “2 matches” version:
     tomorrow_text: str = Form(""),
-
 ):
     if ADMIN_PASSWORD and password != ADMIN_PASSWORD:
         return PlainTextResponse("Unauthorized", status_code=401)
 
-    if not GH_TOKEN:
-        return PlainTextResponse("Missing GITHUB_TOKEN env var", status_code=500)
-
-    today = dt.date.today().isoformat()
-    page_title = title.strip() or "結果速報"
-
     events = parse_daily_results(raw)
     if not events:
-        return PlainTextResponse("Parsed 0 sections. Check your pasted format.", status_code=400)
-
-    state = load_state(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
-    state["title"] = page_title
-    state["last_updated"] = today
-    state = merge_into_state(state, events)
-    save_state(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
-
-    tomorrow_matches = parse_tomorrow_text(tomorrow_text)
+        return PlainTextResponse("Parsed 0 sections.", status_code=400)
 
     tomorrow_matches = parse_tomorrow_text(tomorrow_text)
     tomorrow_names = tomorrow_player_names(tomorrow_matches)
 
-    html = render_bracket_html(
-        sections=state["sections"],
-        title=state["title"],
-        updated_date=state["last_updated"],
-        tournament_name=tournament_name.strip() or page_title,
+    ctx = dict(
+        raw=raw,
+        title=title.strip() or "結果速報",
+        tournament_name=tournament_name.strip() or title,
         venue_name=venue_name.strip(),
         tomorrow_matches=tomorrow_matches,
+        tomorrow_names=tomorrow_names,
         special_message=special_message.strip(),
-        tomorrow_names=tomorrow_names,   # ✅ ADD THIS
-    ).encode("utf-8")
-
-
-
-    html = render_bracket_html(
-        sections=state["sections"],
-        title=state["title"],
-        updated_date=state["last_updated"],
-        tournament_name=tournament_name.strip() or page_title,
-        venue_name=venue_name.strip(),
-        tomorrow_matches=tomorrow_matches,
-        special_message=special_message.strip(),
-    ).encode("utf-8")
-
-    github_put_file(
-        owner=GH_OWNER, repo=GH_REPO, path=PUBLISH_LATEST,
-        content_bytes=html,
-        message=f"Update {PUBLISH_LATEST} ({dt.datetime.now().isoformat(timespec='seconds')})",
-        token=GH_TOKEN, branch=GH_BRANCH
+        sections=events,
     )
 
-    archive_path = f"archive/{today}.html"
-    github_put_file(
-        owner=GH_OWNER, repo=GH_REPO, path=archive_path,
-        content_bytes=html,
-        message=f"Archive cumulative results ({today})",
-        token=GH_TOKEN, branch=GH_BRANCH
+    # Render parts separately
+    header_html = env.get_template("email_header.html").render(**ctx)
+    left_html = env.get_template("column_left.html").render(sections=events)
+    right_html = env.get_template("column_right.html").render(sections=events)
+
+    return env.get_template("preview.html").render(
+        header_html=header_html,
+        left_html=left_html,
+        right_html=right_html,
+        ctx=json.dumps(ctx, ensure_ascii=False),
     )
 
+
+
+@app.post("/publish_final", response_class=HTMLResponse)
+def publish_final(
+    ctx: str = Form(...),
+    header_html: str = Form(...),
+    left_html: str = Form(...),
+    right_html: str = Form(...),
+):
+    ctx = json.loads(ctx)
+
+    today = dt.date.today().isoformat()
+
+    # Rebuild final HTML
+    html = env.get_template("bracket_wrapper.html").render(
+        title=ctx["title"],
+        updated_date=today,
+        header_html=header_html,
+        left_html=left_html,
+        right_html=right_html,
+    ).encode("utf-8")
+
+    # ---- GitHub ----
+    state = load_state(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
+    state["title"] = ctx["title"]
+    state["last_updated"] = today
+    state = merge_into_state(state, ctx["sections"])
+    save_state(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
+
+    github_put_file(
+        owner=GH_OWNER,
+        repo=GH_REPO,
+        path=PUBLISH_LATEST,
+        content_bytes=html,
+        message=f"Update latest ({today})",
+        token=GH_TOKEN,
+        branch=GH_BRANCH
+    )
+
+    github_put_file(
+        owner=GH_OWNER,
+        repo=GH_REPO,
+        path=f"archive/{today}.html",
+        content_bytes=html,
+        message=f"Archive ({today})",
+        token=GH_TOKEN,
+        branch=GH_BRANCH
+    )
+
+    # ---- Email ----
     send_gmail_html(
         to_email="wboo@college.harvard.edu",
-        subject=f"{page_title}（{today}）",
-        html=html.decode("utf-8")
+        subject=f"{ctx['title']}（{today}）",
+        html=html.decode("utf-8"),
     )
 
-    return HTMLResponse(
-        f"""
-        <p>Updated cumulative state and published cumulative page.</p>
-        <ul>
-          <li><code>{STATE_PATH}</code></li>
-          <li><code>{PUBLISH_LATEST}</code></li>
-          <li><code>{archive_path}</code></li>
-        </ul>
-        <p>Latest URL: <code>https://{GH_OWNER}.github.io/{GH_REPO}/{PUBLISH_LATEST}</code></p>
-        """
-    )
+    return HTMLResponse("<h2>送信完了しました。</h2>")
+
 
 
 

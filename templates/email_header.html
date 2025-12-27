@@ -2,11 +2,10 @@
 <div class="email-top">
   <p class="lead">
     {{ tournament_name }}の結果報告をお送りいたします。
-    本日出場した選手は
-    {% for m in tomorrow_matches %}
-      {{ m.name }}{% if not loop.last %}、{% endif %}
-    {% endfor %}
-    です。
+    {% if tomorrow_names %}
+      明日出場予定の選手は
+      {{ tomorrow_names | join("、") }}です。
+    {% endif %}
   </p>
   
   {% if venue_name %}

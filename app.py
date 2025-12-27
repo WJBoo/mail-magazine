@@ -224,23 +224,24 @@ def render_bracket_html(
     sections: List[Dict[str, Any]],
     title: str = "結果速報",
     updated_date: Optional[str] = None,
-    tournament_name: str = "",
+    announcement_title: str = "",
+    tournament_link: str = "",
     venue_name: str = "",
     tomorrow_matches: Optional[List[Dict[str, str]]] = None,
     special_message: str = "",
-    tomorrow_names: Optional[List[str]] = None,   # ✅ ADD
 ) -> str:
     tmpl = env.get_template("bracket_template.html")
     return tmpl.render(
         title=title,
         updated_date=updated_date or dt.date.today().isoformat(),
         sections=sections,
-        tournament_name=tournament_name,
+        announcement_title=announcement_title,
+        tournament_link=tournament_link,
         venue_name=venue_name,
         tomorrow_matches=tomorrow_matches or [],
         special_message=special_message,
-        tomorrow_names=tomorrow_names or [],
     )
+
 
 # ============================================================
 # 3) GITHUB HELPERS (read + write files via Contents API)
@@ -407,11 +408,21 @@ def admin():
       <input type="text" name="title" placeholder="例：2025年 ○○大会 結果速報" style="width:100%;" />
     </div>
     <div class="row">
-      <label>大会名</label><br/>
-      <input type="text" name="tournament_name"
-             placeholder="例：2025年室内大会"
+      <label>件名・冒頭タイトル</label><br/>
+      <input type="text"
+             name="announcement_title"
+             placeholder="例：2025年関東大学テニスリーグ男子第四戦 対日本大学結果報告/男子第四戦 対日本大学、及び女子第四戦 対明治大学のご案内"
              style="width:100%;" />
     </div>
+    
+    <div class="row">
+      <label>大会詳細リンク</label><br/>
+      <input type="text"
+             name="tournament_link"
+             placeholder="https://kantotennisgakuren.r-cms.jp/..."
+             style="width:100%;" />
+    </div>
+
     
     <div class="row">
       <label>会場名</label><br/>
@@ -459,7 +470,8 @@ def preview(
     raw: str = Form(...),
     password: str = Form(""),
     title: str = Form(""),
-    tournament_name: str = Form(""),
+    announcement_title: str = Form(""),
+    tournament_link: str = Form(""),
     venue_name: str = Form(""),
     special_message: str = Form(""),
     tomorrow_text: str = Form(""),

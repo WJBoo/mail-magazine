@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title }}</title>
+
+  <style>
+    *{ box-sizing:border-box; }
+    html, body{ margin:0; padding:0; width:100%; }
+    body{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+
+    .results{
+      background:#050b3d;
+      color:#fff;
+      font-family:
+        "Avenir Light","Avenir","Avenir Next","Helvetica Neue",
+        "Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+      line-height:1.75;
+      display:flex;
+      justify-content:center;
+      padding:28px 0 70px 0;
+      width:100%;
+    }
+
+    .results-shell{
+      width:100%;
+      max-width:1100px;
+      margin:0 auto;
+      padding:0 56px;
+    }
+
+    .meta{
+      opacity:.9;
+      font-size:14px;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    /* Section heading */
+    .section-title{
+      font-size:20px;
+      font-weight:600;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    .player-block{ margin:0 0 26px 0; }
+
+    .player-name{
+      font-size:18px;
+      font-weight:500;
+      margin:0 0 4px 0;
+      letter-spacing:.01em;
+    }
+
+    .stage{
+      font-size:16px;
+      opacity:.95;
+      margin:0 0 6px 0;
+    }
+
+    .line{
+      font-size:16px;
+      margin:2px 0;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    /* Mobile */
+    @media (max-width: 700px){
+      .results-shell{ padding:0 20px; max-width:520px; }
+
+      table, tbody, tr, td{
+        display:block !important;
+        width:100% !important;
+      }
+
+      td{
+        padding:0 !important;
+      }
+
+      .section-title{ font-size:18px; }
+      .player-name{ font-size:17px; }
+      .stage, .line{ font-size:15px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="results">
+    <div class="results-shell">
+
+      <!-- ===== EMAIL HEADER ===== -->
+      {{ header_html | safe }}
+
+      <div style="height:24px;"></div>
+
+      <!-- horizontal divider -->
+      <div style="
+        width:100%;
+        height:1px;
+        background:#ffffff;
+        opacity:0.25;
+        margin:0 0 24px 0;
+      "></div>
+
+      <div class="meta">
+        {{ title }} / 更新: {{ updated_date }}
+      </div>
+
+      <!-- ===== TWO COLUMNS ===== -->
+      <table role="presentation"
+             width="100%"
+             cellpadding="0"
+             cellspacing="0"
+             border="0"
+             style="border-collapse:separate;">
+        <tr>
+          <!-- LEFT COLUMN -->
+          <td valign="top" width="50%" style="padding-right:55px;">
+            {{ left_html | safe }}
+          </td>
+
+          <!-- RIGHT COLUMN -->
+          <td valign="top" width="50%" style="padding-left:55px;">
+            {{ right_html | safe }}
+          </td>
+        </tr>
+      </table>
+
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!-- templates/column_right.html -->
+{# Expects: sections (full list). Builds right = sections[1::2] #}
+{% set right = sections[1::2] %}
+
+{% for s in right %}
+  <h2 class="section-title" style="margin:0 0 18px 0;">◆{{ s.category }}</h2>
+
+  {% for p in s.players %}
+    <div class="player-block" style="margin:0 0 26px 0;">
+      <div class="player-name" style="margin:0 0 4px 0;">{{ p.name }}</div>
+
+      {% for b in p.blocks %}
+        {% if b.stage %}
+          <div class="stage" style="margin:0 0 6px 0;">[{{ b.stage }}]</div>
+        {% endif %}
+
+        {% for ln in b.lines %}
+          <div class="line" style="display:block;margin:2px 0;">{{ ln }}</div>
+        {% endfor %}
+
+        {% if not loop.last %}
+          <div style="height:10px;line-height:10px;font-size:10px;">&nbsp;</div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endfor %}
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+{% endfor %}

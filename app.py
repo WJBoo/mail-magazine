@@ -191,6 +191,36 @@ def append_team_final_line(block: Dict[str, Any], home_name="慶應義塾大学"
         "text": final_line
     })
 
+def parse_team_line_fallback(ln: str):
+    toks = ln.split()
+    if len(toks) < 4:
+        return None
+
+    slot = toks[0]
+    if not re.fullmatch(r"[DS]\d", slot):
+        return None
+
+    def is_score_token(t: str) -> bool:
+        t0 = t.lower()
+        if "ret" in t0 or t0 in {"wo", "w/o"}:
+            return True
+        return bool(re.fullmatch(r"[0-9\-/()（）－−―–—‐ー／]+", t))
+
+    score_idx = None
+    for i in range(2, len(toks)):
+        if is_score_token(toks[i]):
+            score_idx = i
+            break
+
+    if score_idx is None or score_idx == len(toks) - 1:
+        return None
+
+    team = " ".join(toks[1:score_idx])
+    score = toks[score_idx]
+    opp = " ".join(toks[score_idx + 1:])
+
+    return slot, team, score, opp
+
 
 def parse_team_report(text: str) -> Dict[str, Any]:
     lines = [
@@ -226,17 +256,21 @@ def parse_team_report(text: str) -> Dict[str, Any]:
             continue
 
         m = TEAM_LINE_RE.match(ln)
-        if not m:
-            out[current]["lines"].append({
-                "kind": "note",
-                "text": ln
-            })
-            continue
+        if m:
+            slot = m.group("slot").strip()
+            team = m.group("team").strip()
+            score = m.group("score").strip()
+            opp = m.group("opp").strip()
+        else:
+            parsed = parse_team_line_fallback(ln)
+            if not parsed:
+                out[current]["lines"].append({
+                    "kind": "note",
+                    "text": ln
+                })
+                continue
+            slot, team, score, opp = parsed
 
-        slot = m.group("slot").strip()
-        team = m.group("team").strip()
-        score = m.group("score").strip()
-        opp = m.group("opp").strip()
 
         score_disp = score.replace("-", "－").replace("/", "／")
 

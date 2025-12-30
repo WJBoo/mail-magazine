@@ -1,0 +1,16 @@
+{% if team.mens.title %}
+  <h2 class="section-title" style="margin:0 0 18px 0;">【男子】{{ team.mens.title }}</h2>
+{% else %}
+  <h2 class="section-title" style="margin:0 0 18px 0;">【男子】</h2>
+{% endif %}
+
+{% for row in team.mens.lines %}
+  {% if row.kind == "match" %}
+    <div style="margin:0 0 10px 0;">
+      <div style="font-weight:600;">{{ row.slot }} {{ row.team }}</div>
+      <div style="margin-top:2px;">{{ row.score }} {{ row.opp }}</div>
+    </div>
+  {% else %}
+    <div style="margin:0 0 10px 0;">{{ row.text }}</div>
+  {% endif %}
+{% endfor %}

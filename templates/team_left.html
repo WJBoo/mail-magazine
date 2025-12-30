@@ -1,16 +1,23 @@
-{% if team.mens.title %}
-  <h2 class="section-title" style="margin:0 0 18px 0;">【男子】{{ team.mens.title }}</h2>
-{% else %}
-  <h2 class="section-title" style="margin:0 0 18px 0;">【男子】</h2>
-{% endif %}
+<h2 class="section-title" style="margin:0 0 18px 0;">【男子】</h2>
 
-{% for row in team.mens.lines %}
-  {% if row.kind == "match" %}
-    <div style="margin:0 0 10px 0;">
-      <div style="font-weight:600;">{{ row.slot }} {{ row.team }}</div>
-      <div style="margin-top:2px;">{{ row.score }} {{ row.opp }}</div>
-    </div>
+{% for day in team_days %}
+  {% set mens = day.mens %}
+  {% if mens and mens.title %}
+    <h3 style="margin:0 0 14px 0;">◆{{ mens.title }}</h3>
   {% else %}
-    <div style="margin:0 0 10px 0;">{{ row.text }}</div>
+    <h3 style="margin:0 0 14px 0;">◆{{ day.date }}</h3>
   {% endif %}
+
+  {% for row in mens.lines %}
+    {% if row.kind == "match" %}
+      <div style="margin:0 0 14px 0;">
+        <div style="font-weight:600;">{{ row.slot }} {{ row.team }}</div>
+        <div style="margin-top:2px;">{{ row.score }} {{ row.opp }}</div>
+      </div>
+    {% else %}
+      <div style="margin:0 0 14px 0;">{{ row.text }}</div>
+    {% endif %}
+  {% endfor %}
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
 {% endfor %}

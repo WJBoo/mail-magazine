@@ -74,6 +74,24 @@ def send_gmail_html(to_email: str, subject: str, html: str, from_user: str = "me
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
     service.users().messages().send(userId=from_user, body={"raw": raw}).execute()
 
+def normalize_zenkaku(s: str) -> str:
+    if not s:
+        return s
+    # convert full-width digits to ASCII digits
+    trans = str.maketrans("０１２３４５６７８９", "0123456789")
+    s = s.translate(trans)
+
+    # normalize common full-width punctuation
+    s = (s.replace("／", "/")
+          .replace("－", "-")
+          .replace("−", "-")
+          .replace("ー", "-")
+          .replace("―", "-")
+          .replace("（", "(")
+          .replace("）", ")")
+          .replace("　", " "))  # full-width space
+
+    return s
 
 # ============================================================
 # 1) PARSING (new “bracket + multi-line per player” format)

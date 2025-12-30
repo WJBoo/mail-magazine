@@ -910,11 +910,6 @@ def publish_final(
 
     # meta
     state["tournament_tag"] = tournament_tag
-    if ctx.get("report_type") == "team":
-        state.setdefault("team_days", [])
-        state["team_days"].append({"date": today, "team": ctx["team"]})
-        state["tournament_link"] = (ctx.get("tournament_link") or "").strip()
-        state["venue_name"] = (ctx.get("venue_name") or "").strip()
 
     if ctx.get("report_type") == "team":
         state.setdefault("team_days", [])

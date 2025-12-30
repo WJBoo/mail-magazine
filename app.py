@@ -99,12 +99,15 @@ HEADER_RE = re.compile(
     r"(?P<round>.+)$"
 )
 
-SCORE_RE = re.compile(
-    r"^(?P<score>[0-9\-/()]+)\s+(?P<opp>.+)$"
-)
+SCORE_RE = re.compile(r"^(?P<score>[0-9０-９\-/／()（）－−ー―]+)\s+(?P<opp>.+)$")
+
 
 def parse_daily_results(text: str) -> List[Dict[str, Any]]:
-    lines = [ln.strip() for ln in text.replace("\r\n", "\n").split("\n") if ln.strip()]
+    lines = [
+        normalize_zenkaku(ln.strip())
+        for ln in text.replace("\r\n", "\n").split("\n")
+        if ln.strip()
+    ]
 
     sections = []
     i = 0
@@ -263,6 +266,25 @@ def render_bracket_html(
         tomorrow_matches=tomorrow_matches or [],
         special_message=special_message,
     )
+
+    def normalize_zenkaku(s: str) -> str:
+        if not s:
+            return s
+        # convert full-width digits to ASCII digits
+        trans = str.maketrans("０１２３４５６７８９", "0123456789")
+        s = s.translate(trans)
+    
+        # normalize common full-width punctuation
+        s = (s.replace("／", "/")
+              .replace("－", "-")
+              .replace("−", "-")
+              .replace("ー", "-")
+              .replace("―", "-")
+              .replace("（", "(")
+              .replace("）", ")")
+              .replace("　", " "))  # full-width space
+    
+        return s
 
 
 # ============================================================

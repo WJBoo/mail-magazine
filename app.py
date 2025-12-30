@@ -77,21 +77,21 @@ def send_gmail_html(to_email: str, subject: str, html: str, from_user: str = "me
 def normalize_zenkaku(s: str) -> str:
     if not s:
         return s
-    # convert full-width digits to ASCII digits
-    trans = str.maketrans("０１２３４５６７８９", "0123456789")
-    s = s.translate(trans)
 
-    # normalize common full-width punctuation
+    # full-width digits -> ASCII digits
+    s = s.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
+
+    # normalize punctuation BUT DO NOT touch "ー" (prolonged sound mark)
     s = (s.replace("／", "/")
-          .replace("－", "-")
-          .replace("−", "-")
-          .replace("ー", "-")
-          .replace("―", "-")
-          .replace("（", "(")
-          .replace("）", ")")
-          .replace("　", " "))  # full-width space
+          .replace("　", " ")
+          .replace("（", "(").replace("）", ")"))
+
+    # normalize minus variants to ASCII hyphen for parsing (not "ー")
+    for ch in ["－", "−", "―", "–", "—", "‐", "-"]:
+        s = s.replace(ch, "-")
 
     return s
+
 
 # ============================================================
 # 1) PARSING (new “bracket + multi-line per player” format)
@@ -656,29 +656,40 @@ def preview(
 @app.post("/publish_final", response_class=HTMLResponse)
 def publish_final(
     ctx: str = Form(...),
-    header_html: str = Form(...),
-    left_html: str = Form(...),
-    right_html: str = Form(...),
+    header_html: str = Form(""),
+    left_html: str = Form(""),
+    right_html: str = Form(""),
 ):
     ctx = json.loads(ctx)
-
     today = dt.date.today().isoformat()
 
-    # Rebuild final HTML
-    today = dt.date.today().isoformat()
-    
-    # Re-split sections
-    all_sections = ctx.get("sections", [])
+    # ---- GitHub / "DB" ----
+    tournament_tag = (ctx.get("tournament_name") or "").strip()
+    state_path = tournament_state_path(tournament_tag)
+
+    state = load_state_at_path(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH, state_path)
+    state["title"] = ctx["title"]
+    state["last_updated"] = today
+
+    # meta
+    state["tournament_tag"] = tournament_tag
+    state["tournament_link"] = (ctx.get("tournament_link") or "").strip()
+    state["venue_name"] = (ctx.get("venue_name") or "").strip()
+
+    # merge today's results into accumulated state
+    state = merge_into_state(state, ctx["sections"])
+
+    # save accumulated dataset
+    save_state_at_path(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH, state_path)
+
+    # ---- Render from accumulated state (ALL results thus far) ----
+    all_sections = state.get("sections", [])
     left_sections, right_sections = split_sections_by_gender(all_sections)
-    
-    # Re-render columns to enforce left=men, right=women
+
     left_html = env.get_template("column_left.html").render(sections=left_sections)
     right_html = env.get_template("column_right.html").render(sections=right_sections)
-    
-    # Re-render header (so it stays consistent too)
     header_html = env.get_template("email_header.html").render(**ctx)
-    
-    # Rebuild final HTML
+
     html = env.get_template("bracket_wrapper.html").render(
         title=ctx["title"],
         updated_date=today,
@@ -687,24 +698,7 @@ def publish_final(
         right_html=right_html,
     ).encode("utf-8")
 
-
-    # ---- GitHub ----
-    tournament_tag = (ctx.get("tournament_name") or "").strip()
-    state_path = tournament_state_path(tournament_tag)
-    
-    state = load_state_at_path(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH, state_path)
-    state["title"] = ctx["title"]
-    state["last_updated"] = today
-    
-    # 任意：メタ情報として残す
-    state["tournament_tag"] = tournament_tag
-    state["tournament_link"] = (ctx.get("tournament_link") or "").strip()
-    state["venue_name"] = (ctx.get("venue_name") or "").strip()
-    
-    state = merge_into_state(state, ctx["sections"])
-    save_state_at_path(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH, state_path)
     tag_safe = sanitize_tag(tournament_tag)
-
 
     github_put_file(
         owner=GH_OWNER,
@@ -726,28 +720,23 @@ def publish_final(
         branch=GH_BRANCH
     )
 
-    # ---- Email ----
-    # ---- build subject safely ----
+    # ---- Email subject ----
     subject_core = "｜".join(
         x for x in [
             ctx.get("tournament_name", "").strip(),
             ctx.get("day_title", "").strip(),
         ]
         if x
-    )
-    
-    if not subject_core:
-        subject_core = ctx.get("title", "結果速報")
-    
-    # ---- send email ----
+    ) or ctx.get("title", "結果速報")
+
     send_gmail_html(
         to_email="wboo@college.harvard.edu",
         subject=f"{subject_core}（{today}）",
         html=html.decode("utf-8"),
     )
 
-
     return HTMLResponse("<h2>送信完了しました。</h2>")
+
 
 
 

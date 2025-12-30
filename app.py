@@ -835,11 +835,20 @@ def preview(
             report_type="team",
             team=team,
         )
-        team_days = [{
+        # load accumulated history for preview
+        tournament_tag = tournament_name
+        state_path = tournament_state_path(tournament_tag)
+        state = load_state_at_path(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH, state_path)
+        
+        team_days = state.get("team_days", []).copy()
+        
+        # append today's preview (not yet saved)
+        team_days.append({
             "date": dt.date.today().isoformat(),
             "mens": team.get("mens", {}),
             "womens": team.get("womens", {}),
-        }]
+        })
+
         
         header_html = env.get_template("email_header.html").render(**ctx)
         left_html  = env.get_template("team_left.html").render(team_days=team_days)

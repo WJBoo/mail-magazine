@@ -34,7 +34,7 @@
 
   {% if tomorrow_matches %}
     <p class="lead">
-      {{ tomorrow_matches }}
+      {{ tomorrow_matches | replace('\n', '<br>') | safe }}
     </p>
   {% endif %}
 

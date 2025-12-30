@@ -119,19 +119,80 @@ TEAM_LINE_RE = re.compile(
     r"(?P<opp>.+?)\s*$"
 )
 
+
+def did_home_team_win(score: str) -> bool:
+    """
+    Determines whether the LEFT side (Keio) won the match.
+    score examples:
+      6-3/6-2
+      6-2/2-6/7-10
+      6(3)-7/6-4/6-2
+    """
+    score = normalize_zenkaku(score)
+    sets = score.split("/")
+
+    home_sets = 0
+    away_sets = 0
+
+    for s in sets:
+        # extract numbers only: "6(3)-7" -> ["6","7"]
+        nums = re.findall(r"\d+", s)
+        if len(nums) < 2:
+            continue
+
+        a, b = int(nums[0]), int(nums[1])
+        if a > b:
+            home_sets += 1
+        else:
+            away_sets += 1
+
+    return home_sets > away_sets
+
+def compute_team_score(lines: list) -> dict:
+    """
+    lines = mens.lines or womens.lines
+    Returns: {"home": 5, "away": 4}
+    """
+    home = 0
+    away = 0
+
+    for row in lines:
+        if row.get("kind") != "match":
+            continue
+
+        score = row.get("score", "")
+        if not score:
+            continue
+
+        if did_home_team_win(score):
+            home += 1
+        else:
+            away += 1
+
+    return {"home": home, "away": away}
+
+def build_final_line(home: int, away: int, home_name="慶應義塾大学") -> str:
+    if home > away:
+        return f"計{home}-{away}を持ちまして、{home_name}の勝ちが決定致しました。"
+    elif home < away:
+        return f"計{away}-{home}を持ちまして、相手校の勝ちが決定致しました。"
+    else:
+        return f"計{home}-{away}の引き分けとなりました。"
+
+def append_team_final_line(block: Dict[str, Any], home_name="慶應義塾大学"):
+    if not block["lines"]:
+        return
+
+    score = compute_team_score(block["lines"])
+    final_line = build_final_line(score["home"], score["away"], home_name)
+
+    block["lines"].append({
+        "kind": "note",
+        "text": final_line
+    })
+
+
 def parse_team_report(text: str) -> Dict[str, Any]:
-    """
-    Input example:
-      【男子】第一戦 vs 早稲田大学
-      D1 A・B 1-6/4-6 C・D
-      ...
-      (blank line)
-      【女子】第一戦 vs 亜細亜大学
-      D1 ...
-    Returns:
-      {"mens": {"title": "...", "lines":[...]},
-       "womens":{"title": "...", "lines":[...]}}
-    """
     lines = [
         normalize_zenkaku(ln.rstrip())
         for ln in (text or "").replace("\r\n", "\n").split("\n")
@@ -147,11 +208,14 @@ def parse_team_report(text: str) -> Dict[str, Any]:
     for ln in lines:
         ln = ln.strip()
         if not ln:
-            # allow blank line between 男子 and 女子
             continue
 
         hm = TEAM_HEADER_RE.match(ln)
         if hm:
+            # 🔴 IMPORTANT PART ①: close previous block
+            if current is not None:
+                append_team_final_line(out[current])
+
             gender = hm.group("gender")
             title = hm.group("title").strip()
             current = "mens" if gender == "男子" else "womens"
@@ -159,13 +223,14 @@ def parse_team_report(text: str) -> Dict[str, Any]:
             continue
 
         if current is None:
-            # ignore anything before first header
             continue
 
         m = TEAM_LINE_RE.match(ln)
         if not m:
-            # keep unparsed lines as "note" rows (optional)
-            out[current]["lines"].append({"kind": "note", "text": ln})
+            out[current]["lines"].append({
+                "kind": "note",
+                "text": ln
+            })
             continue
 
         slot = m.group("slot").strip()
@@ -173,7 +238,6 @@ def parse_team_report(text: str) -> Dict[str, Any]:
         score = m.group("score").strip()
         opp = m.group("opp").strip()
 
-        # For display: keep Japanese names intact; optionally show full-width score marks
         score_disp = score.replace("-", "－").replace("/", "／")
 
         out[current]["lines"].append({
@@ -188,14 +252,21 @@ def parse_team_report(text: str) -> Dict[str, Any]:
             ],
         })
 
+    # 🔴 IMPORTANT PART ②: close last block after loop
+    if current is not None:
+        append_team_final_line(out[current])
 
     return out
+
+
 
 HEADER_RE = re.compile(
     r"^[◆◇\s]*"
     r"(?P<category>男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)"
     r"\s*(?P<stage>本戦|予選)\s*(?P<round>.+?)\s*$"
 )
+
+
 def parse_score_line(score_line: str):
     """
     Returns (score, opp) or None if not parseable.

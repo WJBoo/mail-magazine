@@ -699,41 +699,55 @@ def preview(
     if ADMIN_PASSWORD and password != ADMIN_PASSWORD:
         return PlainTextResponse("Unauthorized", status_code=401)
 
-    events = parse_daily_results(raw)
-    if not events:
-        return PlainTextResponse("Parsed 0 sections.", status_code=400)
-    tomorrow_matches = parse_tomorrow_text(tomorrow_text)
-    tomorrow_names = tomorrow_player_names(tomorrow_matches)
+    # normalize
+    report_type = (report_type or "individual").strip()
 
     tournament_name = tournament_name.strip()
     day_title = day_title.strip()
-    
-    announcement_title = "｜".join([x for x in [tournament_name, day_title] if x])
-    report_type = (report_type or "individual").strip()
+    announcement_title = "｜".join(x for x in [tournament_name, day_title] if x)
 
-if report_type == "team":
-    team = parse_team_report(raw)
+    tomorrow_matches = parse_tomorrow_text(tomorrow_text)
+    tomorrow_names = tomorrow_player_names(tomorrow_matches)
 
-    ctx = dict(
-        raw=raw,
-        title=title.strip() or "結果速報",
-        tournament_name=tournament_name,
-        day_title=day_title,
-        announcement_title=announcement_title,
-        tournament_link=tournament_link.strip(),
-        venue_name=venue_name.strip(),
-        tomorrow_matches=tomorrow_matches,
-        tomorrow_names=tomorrow_names,
-        special_message=special_message.strip(),
-        report_type="team",
-        team=team,
-    )
+    # ============================================================
+    # TEAM REPORT MODE
+    # ============================================================
+    if report_type == "team":
+        team = parse_team_report(raw)
 
-    header_html = env.get_template("email_header.html").render(**ctx)
-    left_html = env.get_template("team_left.html").render(team=team)
-    right_html = env.get_template("team_right.html").render(team=team)
+        ctx = dict(
+            raw=raw,
+            title=title.strip() or "結果速報",
+            tournament_name=tournament_name,
+            day_title=day_title,
+            announcement_title=announcement_title,
+            tournament_link=tournament_link.strip(),
+            venue_name=venue_name.strip(),
+            tomorrow_matches=tomorrow_matches,
+            tomorrow_names=tomorrow_names,
+            special_message=special_message.strip(),
+            report_type="team",
+            team=team,
+        )
 
-else:
+        header_html = env.get_template("email_header.html").render(**ctx)
+        left_html = env.get_template("team_left.html").render(team=team)
+        right_html = env.get_template("team_right.html").render(team=team)
+
+        return env.get_template("preview.html").render(
+            header_html=header_html,
+            left_html=left_html,
+            right_html=right_html,
+            ctx=json.dumps(ctx, ensure_ascii=False),
+        )
+
+    # ============================================================
+    # INDIVIDUAL REPORT MODE (existing behavior)
+    # ============================================================
+    events = parse_daily_results(raw)
+    if not events:
+        return PlainTextResponse("Parsed 0 sections.", status_code=400)
+
     ctx = dict(
         raw=raw,
         title=title.strip() or "結果速報",
@@ -746,16 +760,14 @@ else:
         tomorrow_names=tomorrow_names,
         special_message=special_message.strip(),
         sections=events,
+        report_type="individual",
     )
 
-
-    # Render parts separately
     header_html = env.get_template("email_header.html").render(**ctx)
     left_sections, right_sections = split_sections_by_gender(events)
-    
+
     left_html = env.get_template("column_left.html").render(sections=left_sections)
     right_html = env.get_template("column_right.html").render(sections=right_sections)
-
 
     return env.get_template("preview.html").render(
         header_html=header_html,
@@ -763,6 +775,7 @@ else:
         right_html=right_html,
         ctx=json.dumps(ctx, ensure_ascii=False),
     )
+
 
 
 

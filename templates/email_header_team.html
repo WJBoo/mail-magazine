@@ -1,0 +1,91 @@
+<!-- templates/email_header.html -->
+<div class="email-top">
+
+  <!-- Announcement title -->
+  {% if announcement_title %}
+  <p class="lead strong">
+    {{ announcement_title }}
+  </p>
+  {% endif %}
+
+  <p class="lead">
+    平素より大変お世話になっております。
+  </p>
+
+  <p class="lead">
+    本日行われました、{{ announcement_title }}の結果報告をさせて頂きます。
+  </p>
+
+  {% if tournament_link %}
+  <p class="lead">
+    大会詳細はこちらからご覧ください。<br/>
+    <a href="{{ tournament_link }}"
+       style="color:#9ecbff;text-decoration:underline;">
+      {{ tournament_link }}
+    </a>
+  </p>
+  {% endif %}
+
+  {% if venue_name %}
+  <p class="lead">
+    次の試合の予定は以下の通りです。試合は{{ venue_name }}で行われます。
+  </p>
+  {% endif %}
+
+  {% if tomorrow_matches}
+    <p class="lead">
+      tomorrow_matches
+    </p>
+  {% endif %}
+
+  {% if special_message %}
+    <div style="height:16px;"></div>
+    <div class="special">
+      {{ special_message }}
+    </div>
+  {% endif %}
+
+</div>
+
+<style>
+  .email-top{ margin:0 0 26px 0; }
+
+  .email-top .lead{
+    margin:0 0 14px 0;
+    font-size:16px;
+    line-height:1.8;
+    opacity:.95;
+  }
+
+  .email-top .strong{
+    font-weight:600;
+    font-size:17px;
+    opacity:1;
+  }
+
+  .email-top .matches{
+    margin:16px 0 10px 0;
+  }
+
+  .email-top .match-name{
+    margin:12px 0 2px 0;
+    font-size:16px;
+    font-weight:600;
+  }
+
+  .email-top .match-vs{
+    margin:0 0 10px 0;
+    font-size:16px;
+    opacity:.95;
+  }
+
+  .email-top .special{
+    margin:18px 0 0 0;
+    padding:12px 14px;
+    border-radius:10px;
+    background:rgba(255,255,255,.08);
+    font-size:15px;
+    line-height:1.75;
+    white-space:pre-wrap;
+  }
+</style>

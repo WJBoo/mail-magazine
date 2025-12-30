@@ -1,0 +1,57 @@
+{
+  "title": "結果速報",
+  "last_updated": "2025-12-30",
+  "sections": [
+    {
+      "category": "男子シングルス",
+      "players": [
+        {
+          "name": "ジョ-ンズ怜音",
+          "blocks": [
+            {
+              "stage": "本戦",
+              "lines": [
+                "5R 6-3/6-2 南拓海(関西大学)"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "男子ダブルス",
+      "players": [
+        {
+          "name": "大塚・福田",
+          "blocks": [
+            {
+              "stage": "本戦",
+              "lines": [
+                "6R 7-6(3)/6-3 後藤ひろき・三原からす(駒澤大学)"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "女子ダブルス",
+      "players": [
+        {
+          "name": "中島玲亜・渡邊多笑",
+          "blocks": [
+            {
+              "stage": "本戦",
+              "lines": [
+                "3R 6-4/6-2 鈴木大翔・船橋我空(鹿屋体育大学)"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tournament_tag": "2025年室内大会",
+  "tournament_link": "https://kantotennisgakuren.r-cms.jp/",
+  "venue_name": "有明テニスの森"
+}

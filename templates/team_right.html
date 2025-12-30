@@ -1,16 +1,23 @@
-{% if team.womens.title %}
-  <h2 class="section-title" style="margin:0 0 18px 0;">【女子】{{ team.womens.title }}</h2>
-{% else %}https://github.com/WJBoo/mail-magazine/tree/main/templates
-  <h2 class="section-title" style="margin:0 0 18px 0;">【女子】</h2>
-{% endif %}
+<h2 class="section-title" style="margin:0 0 18px 0;">【女子】</h2>
 
-{% for row in team.womens.lines %}
-  {% if row.kind == "match" %}
-    <div style="margin:0 0 10px 0;">
-      <div style="font-weight:600;">{{ row.slot }} {{ row.team }}</div>
-      <div style="margin-top:2px;">{{ row.score }} {{ row.opp }}</div>
-    </div>
+{% for day in team_days %}
+  {% set womens = day.womens %}
+  {% if womens and womens.title %}
+    <h3 style="margin:0 0 14px 0;">◆{{ womens.title }}</h3>
   {% else %}
-    <div style="margin:0 0 10px 0;">{{ row.text }}</div>
+    <h3 style="margin:0 0 14px 0;">◆{{ day.date }}</h3>
   {% endif %}
+
+  {% for row in womens.lines %}
+    {% if row.kind == "match" %}
+      <div style="margin:0 0 14px 0;">
+        <div style="font-weight:600;">{{ row.slot }} {{ row.team }}</div>
+        <div style="margin-top:2px;">{{ row.score }} {{ row.opp }}</div>
+      </div>
+    {% else %}
+      <div style="margin:0 0 14px 0;">{{ row.text }}</div>
+    {% endif %}
+  {% endfor %}
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
 {% endfor %}

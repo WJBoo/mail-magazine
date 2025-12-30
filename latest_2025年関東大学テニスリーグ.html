@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>結果速報</title>
+
+  <style>
+    *{ box-sizing:border-box; }
+    html, body{ margin:0; padding:0; width:100%; }
+    body{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+
+    .results{
+      background:#050b3d;
+      color:#fff;
+      font-family:
+        "Avenir Light","Avenir","Avenir Next","Helvetica Neue",
+        "Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+      line-height:1.75;
+      display:flex;
+      justify-content:center;
+      padding:28px 0 70px 0;
+      width:100%;
+    }
+
+    .results-shell{
+      width:100%;
+      max-width:1100px;
+      margin:0 auto;
+      padding:0 56px;
+    }
+
+    .meta{
+      opacity:.9;
+      font-size:14px;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    /* Section heading */
+    .section-title{
+      font-size:20px;
+      font-weight:600;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    .player-block{ margin:0 0 26px 0; }
+
+    .player-name{
+      font-size:18px;
+      font-weight:500;
+      margin:0 0 4px 0;
+      letter-spacing:.01em;
+    }
+
+    .stage{
+      font-size:16px;
+      opacity:.95;
+      margin:0 0 6px 0;
+    }
+
+    .line{
+      font-size:16px;
+      margin:2px 0;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    /* Mobile */
+    @media (max-width: 700px){
+      .results-shell{ padding:0 20px; max-width:520px; }
+
+      table, tbody, tr, td{
+        display:block !important;
+        width:100% !important;
+      }
+
+      td{
+        padding:0 !important;
+      }
+
+      .section-title{ font-size:18px; }
+      .player-name{ font-size:17px; }
+      .stage, .line{ font-size:15px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="results">
+    <div class="results-shell">
+
+      <!-- ===== EMAIL HEADER ===== -->
+      <!-- templates/email_header.html -->
+<div class="email-top">
+
+  <!-- Announcement title -->
+  
+  <p class="lead strong">
+    2025年関東大学テニスリーグ｜男女2戦目結果報告、及び男女3戦目のご案内
+  </p>
+  
+
+  <p class="lead">
+    平素より大変お世話になっております。
+  </p>
+
+  <p class="lead">
+    本日行われました、2025年関東大学テニスリーグ｜男女2戦目結果報告、及び男女3戦目のご案内の結果報告をさせて頂きます。
+  </p>
+
+  
+  <p class="lead">
+    大会詳細はこちらからご覧ください。<br/>
+    <a href="https://kantotennisgakuren.r-cms.jp/"
+       style="color:#9ecbff;text-decoration:underline;">
+      https://kantotennisgakuren.r-cms.jp/
+    </a>
+  </p>
+  
+
+  
+  <p class="lead">
+    次の試合の予定は以下の通りです。試合は慶應義塾大学蝮谷テニスコートで行われます。
+  </p>
+  
+
+  
+    <p class="lead">
+      （男子）第二戦 対上智大学、1月21日2026年
+<br>（女子）第二戦 対東海大学、1月22日2026年
+    </p>
+  
+
+  
+    <div style="height:16px;"></div>
+    <div class="special">
+      頑張ります！
+    </div>
+  
+
+</div>
+
+<style>
+  .email-top{ margin:0 0 26px 0; }
+
+  .email-top .lead{
+    margin:0 0 14px 0;
+    font-size:16px;
+    line-height:1.8;
+    opacity:.95;
+  }
+
+  .email-top .strong{
+    font-weight:600;
+    font-size:17px;
+    opacity:1;
+  }
+
+  .email-top .matches{
+    margin:16px 0 10px 0;
+  }
+
+  .email-top .match-name{
+    margin:12px 0 2px 0;
+    font-size:16px;
+    font-weight:600;
+  }
+
+  .email-top .match-vs{
+    margin:0 0 10px 0;
+    font-size:16px;
+    opacity:.95;
+  }
+
+  .email-top .special{
+    margin:18px 0 0 0;
+    padding:12px 14px;
+    border-radius:10px;
+    background:rgba(255,255,255,.08);
+    font-size:15px;
+    line-height:1.75;
+    white-space:pre-wrap;
+  }
+</style>
+
+      <div style="height:24px;"></div>
+
+      <!-- horizontal divider -->
+      <div style="
+        width:100%;
+        height:1px;
+        background:#ffffff;
+        opacity:0.25;
+        margin:0 0 24px 0;
+      "></div>
+
+      <div class="meta">
+        結果速報 / 更新: 2025-12-30
+      </div>
+
+      <!-- ===== TWO COLUMNS ===== -->
+      <table role="presentation"
+             width="100%"
+             cellpadding="0"
+             cellspacing="0"
+             border="0"
+             style="border-collapse:separate;">
+        <tr>
+          <!-- LEFT COLUMN -->
+          <td valign="top" width="50%" style="padding-right:55px;">
+            <h2 class="section-title" style="margin:0 0 18px 0;">【男子】</h2>
+
+
+  
+  
+    <h3 style="margin:0 0 14px 0;">◆第一戦 対早稲田大学</h3>
+  
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D1 菅谷優作・有本響</div>
+        
+          <div style="margin:2px 0;">1-6/4-6 松本洸・山中翔陽</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D2 磯田祥吾・ジョーンズ怜音</div>
+        
+          <div style="margin:2px 0;">7-5/6-3 木村匠生・杉本一樹</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D3 石島史徳・安藤翔</div>
+        
+          <div style="margin:2px 0;">6-2/2-6/7-10 村田英晃・今田翔吾</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S1 菅谷優作</div>
+        
+          <div style="margin:2px 0;">6-2/6-3 山中翔陽</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S2 ジョーンズ怜音</div>
+        
+          <div style="margin:2px 0;">6-0/7-5 木村匠生</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">計3-2を持ちまして、慶應義塾大学の勝ちが決定致しました。</div>
+    
+
+  
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+
+  
+  
+    <h3 style="margin:0 0 14px 0;">◆第二戦 対明治大学</h3>
+  
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D1 菅谷優作・有本響</div>
+        
+          <div style="margin:2px 0;">6-4/7-6(3) 佐藤駿・高橋悠真</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D2 磯田祥吾・ジョーンズ怜音</div>
+        
+          <div style="margin:2px 0;">4-6/6-3/10-8 鈴木颯太・中村健太</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D3 石島史徳・安藤翔</div>
+        
+          <div style="margin:2px 0;">6-3/6-2 小林海斗・渡辺拓也</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S1 菅谷優作</div>
+        
+          <div style="margin:2px 0;">7-5/6-4 高橋悠真</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S2 ジョーンズ怜音</div>
+        
+          <div style="margin:2px 0;">6-1/6-2 佐藤駿</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">計5-0を持ちまして、慶應義塾大学の勝ちが決定致しました。</div>
+    
+
+  
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+
+          </td>
+
+          <!-- RIGHT COLUMN -->
+          <td valign="top" width="50%" style="padding-left:55px;">
+            <h2 class="section-title" style="margin:0 0 18px 0;">【女子】</h2>
+
+
+  
+  
+    <h3 style="margin:0 0 14px 0;">◆第一戦 対亜細亜大学</h3>
+  
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D1 大橋麗美華・中島玲亜</div>
+        
+          <div style="margin:2px 0;">6(0)-7/6-4/10-5 長谷川采香・松村羽奈</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D2 西飛奈・菅原悠</div>
+        
+          <div style="margin:2px 0;">1-6/0-6 戸坂文音・井上季子</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S1 大橋麗美華</div>
+        
+          <div style="margin:2px 0;">ret1-4 井上季子</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S2 中島玲亜</div>
+        
+          <div style="margin:2px 0;">7-5/6-2 長谷川采香</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S3 西飛奈</div>
+        
+          <div style="margin:2px 0;">6-2/4-6/3-6 松村羽奈</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S4 松本瑠夏</div>
+        
+          <div style="margin:2px 0;">1-6/3-6 志賀亜希奈</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S5 菅原悠</div>
+        
+          <div style="margin:2px 0;">0-6/4-6 戸坂文音</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">計5-2を持ちまして、相手校の勝ちが決定致しました。</div>
+    
+
+  
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+
+  
+  
+    <h3 style="margin:0 0 14px 0;">◆第二戦 対中央大学</h3>
+  
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D1 大橋麗美華・中島玲亜</div>
+        
+          <div style="margin:2px 0;">6-2/6-4 山本彩乃・田中美咲</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">D2 西飛奈・菅原悠</div>
+        
+          <div style="margin:2px 0;">3-6/6-3/10-6 伊藤優花・佐々木陽菜</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S1 大橋麗美華</div>
+        
+          <div style="margin:2px 0;">6-0/6-1 山本彩乃</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S2 中島玲亜</div>
+        
+          <div style="margin:2px 0;">6-4/7-5 田中美咲</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S3 西飛奈</div>
+        
+          <div style="margin:2px 0;">4-6/6-3/6-4 佐々木陽菜</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S4 松本瑠夏</div>
+        
+          <div style="margin:2px 0;">2-6/3-6 伊藤優花</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">
+        
+          <div style="margin:2px 0;">S5 菅原悠</div>
+        
+          <div style="margin:2px 0;">6-3/6-2 佐々木陽菜</div>
+        
+      </div>
+    
+
+  
+    
+      <div style="margin:0 0 14px 0;">計6-1を持ちまして、慶應義塾大学の勝ちが決定致しました。</div>
+    
+
+  
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+
+          </td>
+        </tr>
+      </table>
+
+      <!-- ================= FOOTER ================= -->
+<div style="margin-top:40px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.25); font-size:14px; line-height:1.6; opacity:0.9;">
+
+  <p style="margin:0 0 12px 0;">
+    ◇庭球部ホームページ<br>
+    <a href="https://www.keiotennis.com" style="color:#ffffff; text-decoration:underline;">
+      https://www.keiotennis.com
+    </a>
+  </p>
+
+  <p style="margin:0 0 12px 0;">
+    ◇庭球部OBOG 蝮谷コート利用申請フォーム<br>
+    <a href="https://forms.gle/RJEV31KTbTLQM2tL7" style="color:#ffffff; text-decoration:underline;">
+      https://forms.gle/RJEV31KTbTLQM2tL7
+    </a>
+  </p>
+
+  <p style="margin:0 0 12px 0;">
+    ※庭球三田会に登録された方のみに配信しております。<br>
+    また、情報はメールマガジン配信以外の用途では使用致しません。
+  </p>
+
+  <p style="margin:0 0 12px 0;">
+    ※メールマガジンを解除されたい方は、お手数ですが、以下のアドレスに解除の旨をご連絡お願い致します。<br>
+    <a href="mailto:gtknt3010@gmail.com" style="color:#ffffff; text-decoration:underline;">
+      gtknt3010@gmail.com
+    </a>
+  </p>
+
+  <div style="margin:24px 0 0 0; padding-top:16px; border-top:1px dashed rgba(255,255,255,0.25);">
+    <p style="margin:0;">
+      慶應義塾体育会庭球部<br>
+      大学一年／一年／三年／三年<br>
+      岩田ひなた／前川倫太郎／後藤健太／渡邊多笑
+    </p>
+
+    <p style="margin:8px 0 0 0;">
+      お問い合わせ：
+      <a href="mailto:gtknt3010@gmail.com" style="color:#ffffff; text-decoration:underline;">
+        gtknt3010@gmail.com
+      </a>
+      （後藤健太）
+    </p>
+
+    <p style="margin:8px 0 0 0;">
+      発行責任者：塾庭球部監督 原荘太郎
+    </p>
+  </div>
+
+</div>
+<!-- ================= END FOOTER ================= -->
+
+    </div>
+  </div>
+</body>
+</html>

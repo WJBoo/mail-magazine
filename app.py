@@ -394,6 +394,7 @@ def github_put_file(
 # ============================================================
 # 4) JSON Stuff
 # ============================================================
+TOURNAMENT_DIR = "data/tournaments"
 STATE_PATH = "data/state.json"
 PUBLISH_LATEST = "latest.html"
 

@@ -622,21 +622,25 @@ def publish_final(
     )
 
     # ---- Email ----
+    # ---- build subject safely ----
+    subject_core = "｜".join(
+        x for x in [
+            ctx.get("tournament_name", "").strip(),
+            ctx.get("day_title", "").strip(),
+        ]
+        if x
+    )
+    
+    if not subject_core:
+        subject_core = ctx.get("title", "結果速報")
+    
+    # ---- send email ----
     send_gmail_html(
         to_email="wboo@college.harvard.edu",
-        subject_core = "｜".join([x for x in [ctx.get("tournament_name","").strip(),
-                                     ctx.get("day_title","").strip()] if x])
-        if not subject_core:
-            subject_core = ctx["title"]
-        
-        send_gmail_html(
-            to_email="wboo@college.harvard.edu",
-            subject=f"{subject_core}（{today}）",
-            html=html.decode("utf-8"),
-        )
-
+        subject=f"{subject_core}（{today}）",
         html=html.decode("utf-8"),
     )
+
 
     return HTMLResponse("<h2>送信完了しました。</h2>")
 

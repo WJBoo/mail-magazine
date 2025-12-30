@@ -1,8 +1,7 @@
 <!-- templates/column_left.html -->
-{# Expects: sections (full list). Builds left = sections[0::2] #}
-{% set left = sections[0::2] %}
+{# Expects: sections already filtered for LEFT column #}
 
-{% for s in left %}
+{% for s in sections %}
   <h2 class="section-title" style="margin:0 0 18px 0;">◆{{ s.category }}</h2>
 
   {% for p in s.players %}
@@ -27,4 +26,3 @@
 
   <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
 {% endfor %}
-

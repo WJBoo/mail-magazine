@@ -112,10 +112,40 @@ def normalize_zenkaku(s: str) -> str:
 # ◆女子シングルス
 # ...
 HEADER_RE = re.compile(
-    r"^(?P<category>男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)"
-    r"(?P<stage>本戦|予選)"
-    r"(?P<round>.+)$"
+    r"^[◆◇\s]*"
+    r"(?P<category>男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)"
+    r"\s*(?P<stage>本戦|予選)\s*(?P<round>.+?)\s*$"
 )
+def parse_score_line(score_line: str):
+    """
+    Returns (score, opp) or None if not parseable.
+    Accepts:
+      6-3/6-2 南拓海(関西大学)
+      7-6(3)/6-3 後藤...(...)
+    Also works if there are odd unicode punctuation characters.
+    """
+    s = (score_line or "").strip()
+    if not s:
+        return None
+
+    # Try strict regex first
+    m = SCORE_RE.match(s)
+    if m:
+        return m.group("score"), m.group("opp")
+
+    # Fallback: split at first whitespace and validate left token “looks like a score”
+    parts = s.split(None, 1)
+    if len(parts) != 2:
+        return None
+
+    left, right = parts[0].strip(), parts[1].strip()
+
+    # “looks like score”: contains at least one digit and only score-ish chars
+    if any(ch.isdigit() for ch in left) and re.fullmatch(r"[0-9\-/()]+", left):
+        return left, right
+
+    return None
+
 
 SCORE_RE = re.compile(r"^(?P<score>[0-9０-９\-/／()（）－−ー―]+)\s+(?P<opp>.+)$")
 
@@ -148,24 +178,27 @@ def parse_daily_results(text: str) -> List[Dict[str, Any]]:
 
         i += 1
 
-        # ---- PLAYER + SCORE PAIRS ----
+                # ---- PLAYER + SCORE PAIRS ----
         while i + 1 < len(lines) and not HEADER_RE.match(lines[i]):
             name = lines[i]
             score_line = lines[i + 1]
 
-            sm = SCORE_RE.match(score_line)
-            if sm:
+            parsed = parse_score_line(score_line)
+            if parsed:
+                score, opp = parsed
                 section["players"].append({
                     "name": name,
                     "blocks": [{
                         "stage": stage,
-                        "lines": [
-                            f"{round_} {sm.group('score')} {sm.group('opp')}"
-                        ]
+                        "lines": [f"{round_} {score} {opp}"]
                     }]
                 })
+                i += 2
+            else:
+                # If score_line didn't parse, do NOT jump by 2.
+                # Move forward by 1 so we don't skip headers / desync.
+                i += 1
 
-            i += 2
 
         sections.append(section)
 

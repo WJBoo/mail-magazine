@@ -591,6 +591,20 @@ def publish_final(
     today = dt.date.today().isoformat()
 
     # Rebuild final HTML
+    today = dt.date.today().isoformat()
+    
+    # Re-split sections
+    all_sections = ctx.get("sections", [])
+    left_sections, right_sections = split_sections_by_gender(all_sections)
+    
+    # Re-render columns to enforce left=men, right=women
+    left_html = env.get_template("column_left.html").render(sections=left_sections)
+    right_html = env.get_template("column_right.html").render(sections=right_sections)
+    
+    # Re-render header (so it stays consistent too)
+    header_html = env.get_template("email_header.html").render(**ctx)
+    
+    # Rebuild final HTML
     html = env.get_template("bracket_wrapper.html").render(
         title=ctx["title"],
         updated_date=today,
@@ -598,6 +612,7 @@ def publish_final(
         left_html=left_html,
         right_html=right_html,
     ).encode("utf-8")
+
 
     # ---- GitHub ----
     tournament_tag = (ctx.get("tournament_name") or "").strip()

@@ -800,10 +800,15 @@ def preview(
             report_type="team",
             team=team,
         )
-
+        team_days = [{
+            "date": dt.date.today().isoformat(),
+            "mens": team.get("mens", {}),
+            "womens": team.get("womens", {}),
+        }]
+        
         header_html = env.get_template("email_header.html").render(**ctx)
-        left_html = env.get_template("team_left.html").render(team=team)
-        right_html = env.get_template("team_right.html").render(team=team)
+        left_html  = env.get_template("team_left.html").render(team_days=team_days)
+        right_html = env.get_template("team_right.html").render(team_days=team_days)
 
         return env.get_template("preview.html").render(
             header_html=header_html,

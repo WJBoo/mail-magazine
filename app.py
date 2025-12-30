@@ -221,6 +221,17 @@ def sanitize_tag(tag: str) -> str:
 def tournament_state_path(tag: str) -> str:
     return f"{TOURNAMENT_DIR}/{sanitize_tag(tag)}.json"
 
+def is_mens_category(cat: str) -> bool:
+    return (cat or "").startswith("男子")
+
+def is_womens_category(cat: str) -> bool:
+    return (cat or "").startswith("女子")
+
+def split_sections_by_gender(sections: List[Dict[str, Any]]):
+    left = [s for s in sections if is_mens_category(s.get("category", ""))]
+    right = [s for s in sections if is_womens_category(s.get("category", ""))]
+    return left, right
+
 
 # ============================================================
 # 2) RENDERING

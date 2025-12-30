@@ -834,8 +834,12 @@ def preview(
     day_title = day_title.strip()
     announcement_title = "｜".join(x for x in [tournament_name, day_title] if x)
 
-    tomorrow_matches = parse_tomorrow_text(tomorrow_text)
-    tomorrow_names = tomorrow_player_names(tomorrow_matches)
+    if report_type == "team":
+        tomorrow_matches = tomorrow_text
+        tomorrow_names = ""
+    else:
+        tomorrow_matches = parse_tomorrow_text(tomorrow_text)
+        tomorrow_names = tomorrow_player_names(tomorrow_matches)
 
     # ============================================================
     # TEAM REPORT MODE

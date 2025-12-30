@@ -735,6 +735,12 @@ def publish_final(
         html=html.decode("utf-8"),
     )
 
+    send_gmail_html(
+        to_email="gtknt3010@gmail.com",
+        subject=f"{subject_core}（{today}）",
+        html=html.decode("utf-8"),
+    )
+
     return HTMLResponse("<h2>送信完了しました。</h2>")
 
 

@@ -787,8 +787,15 @@ def publish_final(
     state["tournament_link"] = (ctx.get("tournament_link") or "").strip()
     state["venue_name"] = (ctx.get("venue_name") or "").strip()
 
-    # merge today's results into accumulated state
-    state = merge_into_state(state, ctx["sections"])
+    if ctx.get("report_type") == "team":
+        state.setdefault("team_days", [])
+        state["team_days"].append({
+            "date": today,
+            "mens": ctx["team"].get("mens", {}),
+            "womens": ctx["team"].get("womens", {}),
+        })
+    else:
+        state = merge_into_state(state, ctx["sections"])
 
     # save accumulated dataset
     save_state_at_path(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH, state_path)
@@ -796,10 +803,17 @@ def publish_final(
     # ---- Render from accumulated state (ALL results thus far) ----
     all_sections = state.get("sections", [])
     left_sections, right_sections = split_sections_by_gender(all_sections)
+    
+    if ctx.get("report_type") == "team":
+        team_days = state.get("team_days", [])
+        left_html  = env.get_template("team_left.html").render(team_days=team_days)
+        right_html = env.get_template("team_right.html").render(team_days=team_days)
+    else:
+        all_sections = state.get("sections", [])
+        left_sections, right_sections = split_sections_by_gender(all_sections)
+        left_html  = env.get_template("column_left.html").render(sections=left_sections)
+        right_html = env.get_template("column_right.html").render(sections=right_sections)
 
-    left_html = env.get_template("column_left.html").render(sections=left_sections)
-    right_html = env.get_template("column_right.html").render(sections=right_sections)
-    header_html = env.get_template("email_header.html").render(**ctx)
 
     html = env.get_template("bracket_wrapper.html").render(
         title=ctx["title"],

@@ -835,8 +835,7 @@ def preview(
     announcement_title = "｜".join(x for x in [tournament_name, day_title] if x)
 
     if report_type == "team":
-        tomorrow_matches = tomorrow_text
-        tomorrow_names = ""
+        next_match = tomorrow_text
     else:
         tomorrow_matches = parse_tomorrow_text(tomorrow_text)
         tomorrow_names = tomorrow_player_names(tomorrow_matches)
@@ -855,8 +854,7 @@ def preview(
             announcement_title=announcement_title,
             tournament_link=tournament_link.strip(),
             venue_name=venue_name.strip(),
-            tomorrow_matches=tomorrow_matches,
-            tomorrow_names=tomorrow_names,
+            tomorrow_matches=next_match
             special_message=special_message.strip(),
             report_type="team",
             team=team,
@@ -876,7 +874,7 @@ def preview(
         })
 
         
-        header_html = env.get_template("email_header.html").render(**ctx)
+        header_html = env.get_template("email_header_team.html").render(**ctx)
         left_html  = env.get_template("team_left.html").render(team_days=team_days)
         right_html = env.get_template("team_right.html").render(team_days=team_days)
 

@@ -709,18 +709,19 @@ def admin():
       <label>Password (optional)</label><br/>
       <input type="password" name="password" />
     </div>
+   
+
     <div class="row">
+      <label>Title (optional)</label><br/>
+      <input type="text" name="title" placeholder="例：2025年 ○○大会 結果速報" style="width:100%;" />
+    </div>
+     <div class="row">
   <label>レポート形式</label><br/>
   <select name="report_type" style="width:100%;padding:8px 10px;font-size:16px;">
     <option value="individual" selected>個人戦（現行）</option>
     <option value="team">団体戦（男子/女子 左右）</option>
   </select>
 </div>
-
-    <div class="row">
-      <label>Title (optional)</label><br/>
-      <input type="text" name="title" placeholder="例：2025年 ○○大会 結果速報" style="width:100%;" />
-    </div>
     <div class="row">
   <label>大会名</label><br/>
   <input type="text"

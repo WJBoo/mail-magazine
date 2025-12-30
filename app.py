@@ -272,7 +272,7 @@ def parse_team_report(text: str) -> Dict[str, Any]:
             slot, team, score, opp = parsed
 
 
-        score_disp = score.replace("-", "－").replace("/", "／")
+        score_disp = score
 
         out[current]["lines"].append({
             "kind": "match",

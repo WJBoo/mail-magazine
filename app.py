@@ -111,6 +111,81 @@ def normalize_zenkaku(s: str) -> str:
 #
 # ◆女子シングルス
 # ...
+TEAM_HEADER_RE = re.compile(r"^\s*【(?P<gender>男子|女子)】\s*(?P<title>.+?)\s*$")
+TEAM_LINE_RE = re.compile(
+    r"^\s*(?P<slot>D\d|S\d)\s+"
+    r"(?P<team>.+?)\s+"
+    r"(?P<score>[0-9０-９\-/／()（）－−―–—‐ー]+)\s+"
+    r"(?P<opp>.+?)\s*$"
+)
+
+def parse_team_report(text: str) -> Dict[str, Any]:
+    """
+    Input example:
+      【男子】第一戦 vs 早稲田大学
+      D1 A・B 1-6/4-6 C・D
+      ...
+      (blank line)
+      【女子】第一戦 vs 亜細亜大学
+      D1 ...
+    Returns:
+      {"mens": {"title": "...", "lines":[...]},
+       "womens":{"title": "...", "lines":[...]}}
+    """
+    lines = [
+        normalize_zenkaku(ln.rstrip())
+        for ln in (text or "").replace("\r\n", "\n").split("\n")
+    ]
+
+    out = {
+        "mens": {"title": "", "lines": []},
+        "womens": {"title": "", "lines": []},
+    }
+
+    current = None  # "mens" or "womens"
+
+    for ln in lines:
+        ln = ln.strip()
+        if not ln:
+            # allow blank line between 男子 and 女子
+            continue
+
+        hm = TEAM_HEADER_RE.match(ln)
+        if hm:
+            gender = hm.group("gender")
+            title = hm.group("title").strip()
+            current = "mens" if gender == "男子" else "womens"
+            out[current]["title"] = title
+            continue
+
+        if current is None:
+            # ignore anything before first header
+            continue
+
+        m = TEAM_LINE_RE.match(ln)
+        if not m:
+            # keep unparsed lines as "note" rows (optional)
+            out[current]["lines"].append({"kind": "note", "text": ln})
+            continue
+
+        slot = m.group("slot").strip()
+        team = m.group("team").strip()
+        score = m.group("score").strip()
+        opp = m.group("opp").strip()
+
+        # For display: keep Japanese names intact; optionally show full-width score marks
+        score_disp = score.replace("-", "－").replace("/", "／")
+
+        out[current]["lines"].append({
+            "kind": "match",
+            "slot": slot,
+            "team": team,
+            "score": score_disp,
+            "opp": opp,
+        })
+
+    return out
+
 HEADER_RE = re.compile(
     r"^[◆◇\s]*"
     r"(?P<category>男子シングルス|男子ダブルス|女子シングルス|女子ダブルス)"
@@ -525,6 +600,14 @@ def admin():
       <input type="password" name="password" />
     </div>
     <div class="row">
+  <label>レポート形式</label><br/>
+  <select name="report_type" style="width:100%;padding:8px 10px;font-size:16px;">
+    <option value="individual" selected>個人戦（現行）</option>
+    <option value="team">団体戦（男子/女子 左右）</option>
+  </select>
+</div>
+
+    <div class="row">
       <label>Title (optional)</label><br/>
       <input type="text" name="title" placeholder="例：2025年 ○○大会 結果速報" style="width:100%;" />
     </div>
@@ -606,6 +689,7 @@ def preview(
     tomorrow_text: str = Form(""),
     tournament_name: str = Form(""),
     day_title: str = Form(""),
+    report_type: str = Form("individual"),
 ):
     if ADMIN_PASSWORD and password != ADMIN_PASSWORD:
         return PlainTextResponse("Unauthorized", status_code=401)
@@ -620,7 +704,31 @@ def preview(
     day_title = day_title.strip()
     
     announcement_title = "｜".join([x for x in [tournament_name, day_title] if x])
-    
+    report_type = (report_type or "individual").strip()
+
+if report_type == "team":
+    team = parse_team_report(raw)
+
+    ctx = dict(
+        raw=raw,
+        title=title.strip() or "結果速報",
+        tournament_name=tournament_name,
+        day_title=day_title,
+        announcement_title=announcement_title,
+        tournament_link=tournament_link.strip(),
+        venue_name=venue_name.strip(),
+        tomorrow_matches=tomorrow_matches,
+        tomorrow_names=tomorrow_names,
+        special_message=special_message.strip(),
+        report_type="team",
+        team=team,
+    )
+
+    header_html = env.get_template("email_header.html").render(**ctx)
+    left_html = env.get_template("team_left.html").render(team=team)
+    right_html = env.get_template("team_right.html").render(team=team)
+
+else:
     ctx = dict(
         raw=raw,
         title=title.strip() or "結果速報",

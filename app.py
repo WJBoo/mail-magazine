@@ -408,12 +408,20 @@ def admin():
       <input type="text" name="title" placeholder="例：2025年 ○○大会 結果速報" style="width:100%;" />
     </div>
     <div class="row">
-      <label>件名・冒頭タイトル</label><br/>
-      <input type="text"
-             name="announcement_title"
-             placeholder="例：2025年関東大学テニスリーグ男子第四戦 対日本大学結果報告/男子第四戦 対日本大学、及び女子第四戦 対明治大学のご案内"
-             style="width:100%;" />
-    </div>
+  <label>大会名</label><br/>
+  <input type="text"
+         name="tournament_name"
+         placeholder="例：2025関東大学リーグ"
+         style="width:100%;" />
+</div>
+
+<div class="row">
+  <label>日次タイトル（何日目 + 案内など）</label><br/>
+  <input type="text"
+         name="day_title"
+         placeholder="例：5日目結果報告、及び6日目のご案内"
+         style="width:100%;" />
+</div>
     
     <div class="row">
       <label>大会詳細リンク</label><br/>
@@ -475,6 +483,8 @@ def preview(
     venue_name: str = Form(""),
     special_message: str = Form(""),
     tomorrow_text: str = Form(""),
+    tournament_name: str = Form(""),
+    day_title: str = Form(""),
 ):
     if ADMIN_PASSWORD and password != ADMIN_PASSWORD:
         return PlainTextResponse("Unauthorized", status_code=401)
@@ -483,23 +493,25 @@ def preview(
     if not events:
         return PlainTextResponse("Parsed 0 sections.", status_code=400)
 
-    tomorrow_matches = parse_tomorrow_text(tomorrow_text)
-    tomorrow_names = tomorrow_player_names(tomorrow_matches)
-
+    tournament_name = tournament_name.strip()
+    day_title = day_title.strip()
+    
+    announcement_title = "｜".join([x for x in [tournament_name, day_title] if x])
+    
     ctx = dict(
         raw=raw,
         title=title.strip() or "結果速報",
-    
-        # NEW
-        announcement_title=announcement_title.strip(),
+        tournament_name=tournament_name,
+        day_title=day_title,
+        announcement_title=announcement_title,
         tournament_link=tournament_link.strip(),
-    
         venue_name=venue_name.strip(),
         tomorrow_matches=tomorrow_matches,
         tomorrow_names=tomorrow_names,
         special_message=special_message.strip(),
         sections=events,
     )
+
 
     # Render parts separately
     header_html = env.get_template("email_header.html").render(**ctx)
@@ -565,7 +577,17 @@ def publish_final(
     # ---- Email ----
     send_gmail_html(
         to_email="wboo@college.harvard.edu",
-        subject=f"{ctx['title']}（{today}）",
+        subject_core = "｜".join([x for x in [ctx.get("tournament_name","").strip(),
+                                     ctx.get("day_title","").strip()] if x])
+        if not subject_core:
+            subject_core = ctx["title"]
+        
+        send_gmail_html(
+            to_email="wboo@college.harvard.edu",
+            subject=f"{subject_core}（{today}）",
+            html=html.decode("utf-8"),
+        )
+
         html=html.decode("utf-8"),
     )
 

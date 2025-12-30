@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>結果速報</title>
+
+  <style>
+    *{ box-sizing:border-box; }
+    html, body{ margin:0; padding:0; width:100%; }
+    body{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+
+    .results{
+      background:#050b3d;
+      color:#fff;
+      font-family:
+        "Avenir Light","Avenir","Avenir Next","Helvetica Neue",
+        "Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+      line-height:1.75;
+      display:flex;
+      justify-content:center;
+      padding:28px 0 70px 0;
+      width:100%;
+    }
+
+    .results-shell{
+      width:100%;
+      max-width:1100px;
+      margin:0 auto;
+      padding:0 56px;
+    }
+
+    .meta{
+      opacity:.9;
+      font-size:14px;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    /* Section heading */
+    .section-title{
+      font-size:20px;
+      font-weight:600;
+      margin:0 0 18px 0;
+      letter-spacing:.02em;
+    }
+
+    .player-block{ margin:0 0 26px 0; }
+
+    .player-name{
+      font-size:18px;
+      font-weight:500;
+      margin:0 0 4px 0;
+      letter-spacing:.01em;
+    }
+
+    .stage{
+      font-size:16px;
+      opacity:.95;
+      margin:0 0 6px 0;
+    }
+
+    .line{
+      font-size:16px;
+      margin:2px 0;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    /* Mobile */
+    @media (max-width: 700px){
+      .results-shell{ padding:0 20px; max-width:520px; }
+
+      table, tbody, tr, td{
+        display:block !important;
+        width:100% !important;
+      }
+
+      td{
+        padding:0 !important;
+      }
+
+      .section-title{ font-size:18px; }
+      .player-name{ font-size:17px; }
+      .stage, .line{ font-size:15px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="results">
+    <div class="results-shell">
+
+      <!-- ===== EMAIL HEADER ===== -->
+      <!-- templates/email_header.html -->
+<div class="email-top">
+
+  <!-- Announcement title -->
+  
+  <p class="lead strong">
+    2025年室内大会｜5日目結果報告、及び6日目のご案内
+  </p>
+  
+
+  <p class="lead">
+    平素より大変お世話になっております。
+  </p>
+
+  <p class="lead">
+    本日行われました、2025年室内大会｜5日目結果報告、及び6日目のご案内の結果報告をさせて頂きます。
+  </p>
+
+  
+  <p class="lead">
+    大会詳細はこちらからご覧ください。<br/>
+    <a href="https://kantotennisgakuren.r-cms.jp/"
+       style="color:#9ecbff;text-decoration:underline;">
+      https://kantotennisgakuren.r-cms.jp/
+    </a>
+  </p>
+  
+
+  
+  <p class="lead">
+    明日出場予定の選手は
+    山田太郎、鈴木花子です。
+  </p>
+  
+
+  
+  <p class="lead">
+    明日の予定は以下の通りです。試合は有明テニスの森で行われます。
+  </p>
+  
+
+  
+    <div class="matches">
+      
+        <div class="match-name">
+          山田太郎（男子シングルス）
+        </div>
+        <div class="match-vs">
+          対佐藤次郎（9:00、3番コート）
+        </div>
+      
+        <div class="match-name">
+          鈴木花子（女子シングルス）
+        </div>
+        <div class="match-vs">
+          対田中愛（10:30、1番コート）
+        </div>
+      
+    </div>
+  
+
+  
+    <div style="height:16px;"></div>
+    <div class="special">
+      ダブルス菅谷・有本は序盤から相手に主導権を握られ、流れをつかむことができず、悔しい敗戦となりました。
+眞田・ジョーンズは第1セットを落としたものの、第2セットをタイブレークで奪い返すと、最終セットも接戦を制して白星を挙げました。
+石島・安藤は互いにセットを取り合う展開となりましたが、最後は相手の勢いに押され惜敗となりました。
+    </div>
+  
+
+</div>
+
+<style>
+  .email-top{ margin:0 0 26px 0; }
+
+  .email-top .lead{
+    margin:0 0 14px 0;
+    font-size:16px;
+    line-height:1.8;
+    opacity:.95;
+  }
+
+  .email-top .strong{
+    font-weight:600;
+    font-size:17px;
+    opacity:1;
+  }
+
+  .email-top .matches{
+    margin:16px 0 10px 0;
+  }
+
+  .email-top .match-name{
+    margin:12px 0 2px 0;
+    font-size:16px;
+    font-weight:600;
+  }
+
+  .email-top .match-vs{
+    margin:0 0 10px 0;
+    font-size:16px;
+    opacity:.95;
+  }
+
+  .email-top .special{
+    margin:18px 0 0 0;
+    padding:12px 14px;
+    border-radius:10px;
+    background:rgba(255,255,255,.08);
+    font-size:15px;
+    line-height:1.75;
+    white-space:pre-wrap;
+  }
+</style>
+
+      <div style="height:24px;"></div>
+
+      <!-- horizontal divider -->
+      <div style="
+        width:100%;
+        height:1px;
+        background:#ffffff;
+        opacity:0.25;
+        margin:0 0 24px 0;
+      "></div>
+
+      <div class="meta">
+        結果速報 / 更新: 2025-12-30
+      </div>
+
+      <!-- ===== TWO COLUMNS ===== -->
+      <table role="presentation"
+             width="100%"
+             cellpadding="0"
+             cellspacing="0"
+             border="0"
+             style="border-collapse:separate;">
+        <tr>
+          <!-- LEFT COLUMN -->
+          <td valign="top" width="50%" style="padding-right:55px;">
+            <!-- templates/column_left.html -->
+
+
+
+  <h2 class="section-title" style="margin:0 0 18px 0;">◆男子シングルス</h2>
+
+  
+    <div class="player-block" style="margin:0 0 26px 0;">
+      <div class="player-name" style="margin:0 0 4px 0;">ジョ-ンズ怜音</div>
+
+      
+        
+          <div class="stage" style="margin:0 0 6px 0;">[本戦]</div>
+        
+
+        
+          <div class="line" style="display:block;margin:2px 0;">5R 6-3/6-2 南拓海(関西大学)</div>
+        
+
+        
+      
+    </div>
+  
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+
+  <h2 class="section-title" style="margin:0 0 18px 0;">◆男子ダブルス</h2>
+
+  
+    <div class="player-block" style="margin:0 0 26px 0;">
+      <div class="player-name" style="margin:0 0 4px 0;">大塚・福田</div>
+
+      
+        
+          <div class="stage" style="margin:0 0 6px 0;">[本戦]</div>
+        
+
+        
+          <div class="line" style="display:block;margin:2px 0;">6R 7-6(3)/6-3 後藤ひろき・三原からす(駒澤大学)</div>
+        
+
+        
+      
+    </div>
+  
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+
+          </td>
+
+          <!-- RIGHT COLUMN -->
+          <td valign="top" width="50%" style="padding-left:55px;">
+            <!-- templates/column_right.html -->
+
+
+
+  <h2 class="section-title" style="margin:0 0 18px 0;">◆女子ダブルス</h2>
+
+  
+    <div class="player-block" style="margin:0 0 26px 0;">
+      <div class="player-name" style="margin:0 0 4px 0;">中島玲亜・渡邊多笑</div>
+
+      
+        
+          <div class="stage" style="margin:0 0 6px 0;">[本戦]</div>
+        
+
+        
+          <div class="line" style="display:block;margin:2px 0;">3R 6-4/6-2 鈴木大翔・船橋我空(鹿屋体育大学)</div>
+        
+
+        
+      
+    </div>
+  
+
+  <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+
+          </td>
+        </tr>
+      </table>
+
+      <!-- ================= FOOTER ================= -->
+<div style="margin-top:40px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.25); font-size:14px; line-height:1.6; opacity:0.9;">
+
+  <p style="margin:0 0 12px 0;">
+    ◇庭球部ホームページ<br>
+    <a href="https://www.keiotennis.com" style="color:#ffffff; text-decoration:underline;">
+      https://www.keiotennis.com
+    </a>
+  </p>
+
+  <p style="margin:0 0 12px 0;">
+    ◇庭球部OBOG 蝮谷コート利用申請フォーム<br>
+    <a href="https://forms.gle/RJEV31KTbTLQM2tL7" style="color:#ffffff; text-decoration:underline;">
+      https://forms.gle/RJEV31KTbTLQM2tL7
+    </a>
+  </p>
+
+  <p style="margin:0 0 12px 0;">
+    ※庭球三田会に登録された方のみに配信しております。<br>
+    また、情報はメールマガジン配信以外の用途では使用致しません。
+  </p>
+
+  <p style="margin:0 0 12px 0;">
+    ※メールマガジンを解除されたい方は、お手数ですが、以下のアドレスに解除の旨をご連絡お願い致します。<br>
+    <a href="mailto:gtknt3010@gmail.com" style="color:#ffffff; text-decoration:underline;">
+      gtknt3010@gmail.com
+    </a>
+  </p>
+
+  <div style="margin:24px 0 0 0; padding-top:16px; border-top:1px dashed rgba(255,255,255,0.25);">
+    <p style="margin:0;">
+      慶應義塾体育会庭球部<br>
+      大学一年／一年／三年／三年<br>
+      岩田ひなた／前川倫太郎／後藤健太／渡邊多笑
+    </p>
+
+    <p style="margin:8px 0 0 0;">
+      お問い合わせ：
+      <a href="mailto:gtknt3010@gmail.com" style="color:#ffffff; text-decoration:underline;">
+        gtknt3010@gmail.com
+      </a>
+      （後藤健太）
+    </p>
+
+    <p style="margin:8px 0 0 0;">
+      発行責任者：塾庭球部監督 原荘太郎
+    </p>
+  </div>
+
+</div>
+<!-- ================= END FOOTER ================= -->
+
+    </div>
+  </div>
+</body>
+</html>

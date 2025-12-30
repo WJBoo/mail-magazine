@@ -209,6 +209,17 @@ def tomorrow_player_names(tomorrow_matches: List[Dict[str, str]]) -> List[str]:
             names.append(name)
     return names
 
+def sanitize_tag(tag: str) -> str:
+    tag = (tag or "").strip()
+    if not tag:
+        raise ValueError("tournament_name (tag) is empty")
+    # ファイル名として危ない文字だけ潰す（日本語は残す）
+    tag = re.sub(r"[\\/:\*\?\"<>\|]+", "_", tag)
+    tag = re.sub(r"\s+", "_", tag)
+    return tag
+
+def tournament_state_path(tag: str) -> str:
+    return f"{TOURNAMENT_DIR}/{sanitize_tag(tag)}.json"
 
 
 # ============================================================
@@ -301,6 +312,31 @@ def github_put_file(
 # ============================================================
 STATE_PATH = "data/state.json"
 PUBLISH_LATEST = "latest.html"
+
+def load_state_at_path(token: str, owner: str, repo: str, branch: str, path: str) -> Dict[str, Any]:
+    txt = github_get_file_text(owner, repo, path, token, branch=branch)
+    if not txt:
+        return {"title": "結果速報", "last_updated": "", "sections": []}
+    try:
+        data = json.loads(txt)
+        if not isinstance(data, dict):
+            return {"title": "結果速報", "last_updated": "", "sections": []}
+        data.setdefault("title", "結果速報")
+        data.setdefault("last_updated", "")
+        data.setdefault("sections", [])
+        return data
+    except json.JSONDecodeError:
+        return {"title": "結果速報", "last_updated": "", "sections": []}
+
+def save_state_at_path(state: Dict[str, Any], token: str, owner: str, repo: str, branch: str, path: str) -> None:
+    b = json.dumps(state, ensure_ascii=False, indent=2).encode("utf-8")
+    github_put_file(
+        owner=owner, repo=repo, path=path,
+        content_bytes=b,
+        message=f"Update {path} ({dt.datetime.now().isoformat(timespec='seconds')})",
+        token=token, branch=branch
+    )
+
 
 def load_state(token: str, owner: str, repo: str, branch: str) -> Dict[str, Any]:
     txt = github_get_file_text(owner, repo, STATE_PATH, token, branch=branch)
@@ -548,16 +584,27 @@ def publish_final(
     ).encode("utf-8")
 
     # ---- GitHub ----
-    state = load_state(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
+    tournament_tag = (ctx.get("tournament_name") or "").strip()
+    state_path = tournament_state_path(tournament_tag)
+    
+    state = load_state_at_path(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH, state_path)
     state["title"] = ctx["title"]
     state["last_updated"] = today
+    
+    # 任意：メタ情報として残す
+    state["tournament_tag"] = tournament_tag
+    state["tournament_link"] = (ctx.get("tournament_link") or "").strip()
+    state["venue_name"] = (ctx.get("venue_name") or "").strip()
+    
     state = merge_into_state(state, ctx["sections"])
-    save_state(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH)
+    save_state_at_path(state, GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH, state_path)
+    tag_safe = sanitize_tag(tournament_tag)
+
 
     github_put_file(
         owner=GH_OWNER,
         repo=GH_REPO,
-        path=PUBLISH_LATEST,
+        path=f"latest_{tag_safe}.html",
         content_bytes=html,
         message=f"Update latest ({today})",
         token=GH_TOKEN,
@@ -567,7 +614,7 @@ def publish_final(
     github_put_file(
         owner=GH_OWNER,
         repo=GH_REPO,
-        path=f"archive/{today}.html",
+        path=f"archive/{tag_safe}/{today}.html",
         content_bytes=html,
         message=f"Archive ({today})",
         token=GH_TOKEN,

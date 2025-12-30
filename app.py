@@ -91,6 +91,28 @@ def normalize_zenkaku(s: str) -> str:
         s = s.replace(ch, "-")
 
     return s
+def normalize_team_days(team_days: list) -> list:
+    """
+    Ensures every entry has top-level 'mens' and 'womens'.
+    Migrates legacy {'team': {...}} shape if found.
+    """
+    out = []
+
+    for day in team_days:
+        if "mens" in day or "womens" in day:
+            # already correct shape
+            out.append(day)
+            continue
+
+        # legacy shape
+        team = day.get("team", {})
+        out.append({
+            "date": day.get("date"),
+            "mens": team.get("mens", {}),
+            "womens": team.get("womens", {}),
+        })
+
+    return out
 
 
 # ============================================================
@@ -840,7 +862,7 @@ def preview(
         state_path = tournament_state_path(tournament_tag)
         state = load_state_at_path(GH_TOKEN, GH_OWNER, GH_REPO, GH_BRANCH, state_path)
         
-        team_days = state.get("team_days", []).copy()
+        team_days = normalize_team_days(state.get("team_days", []))
         
         # append today's preview (not yet saved)
         team_days.append({
@@ -938,9 +960,10 @@ def publish_final(
     left_sections, right_sections = split_sections_by_gender(all_sections)
     
     if ctx.get("report_type") == "team":
-        team_days = state.get("team_days", [])
+        team_days = normalize_team_days(state.get("team_days", []))
         left_html  = env.get_template("team_left.html").render(team_days=team_days)
         right_html = env.get_template("team_right.html").render(team_days=team_days)
+
     else:
         all_sections = state.get("sections", [])
         left_sections, right_sections = split_sections_by_gender(all_sections)

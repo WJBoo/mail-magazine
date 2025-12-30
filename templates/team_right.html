@@ -11,12 +11,14 @@
   {% for row in womens.lines %}
     {% if row.kind == "match" %}
       <div style="margin:0 0 14px 0;">
-        <div style="font-weight:600;">{{ row.slot }} {{ row.team }}</div>
-        <div style="margin-top:2px;">{{ row.score }} {{ row.opp }}</div>
+        {% for ln in row.display %}
+          <div style="margin:2px 0;">{{ ln }}</div>
+        {% endfor %}
       </div>
     {% else %}
       <div style="margin:0 0 14px 0;">{{ row.text }}</div>
     {% endif %}
+
   {% endfor %}
 
   <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>

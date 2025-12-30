@@ -182,7 +182,12 @@ def parse_team_report(text: str) -> Dict[str, Any]:
             "team": team,
             "score": score_disp,
             "opp": opp,
+            "display": [
+                f"{slot} {team}",
+                f"{score_disp} {opp}",
+            ],
         })
+
 
     return out
 

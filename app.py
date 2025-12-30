@@ -528,6 +528,8 @@ def preview(
     events = parse_daily_results(raw)
     if not events:
         return PlainTextResponse("Parsed 0 sections.", status_code=400)
+    tomorrow_matches = parse_tomorrow_text(tomorrow_text)
+    tomorrow_names = tomorrow_player_names(tomorrow_matches)
 
     tournament_name = tournament_name.strip()
     day_title = day_title.strip()

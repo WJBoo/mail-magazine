@@ -564,8 +564,11 @@ def preview(
 
     # Render parts separately
     header_html = env.get_template("email_header.html").render(**ctx)
-    left_html = env.get_template("column_left.html").render(sections=events)
-    right_html = env.get_template("column_right.html").render(sections=events)
+    left_sections, right_sections = split_sections_by_gender(events)
+    
+    left_html = env.get_template("column_left.html").render(sections=left_sections)
+    right_html = env.get_template("column_right.html").render(sections=right_sections)
+
 
     return env.get_template("preview.html").render(
         header_html=header_html,
